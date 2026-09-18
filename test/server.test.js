@@ -1,0 +1,77 @@
+import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { saveRun } from "../src/runs.js";
+import { startServer } from "../src/server.js";
+
+test("local APIs require exact same-origin JSON and typed onboarding fields", async () => {
+  const { server, url } = await startServer({ port: 0, open: false });
+  try {
+    const status = await fetch(`${url}/api/status`);
+    assert.equal(status.status, 200);
+
+    const wrongOrigin = await fetch(`${url}/api/onboard`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://127.0.0.1:9",
+      },
+      body: "{}",
+    });
+    assert.equal(wrongOrigin.status, 403);
+
+    const wrongType = await fetch(`${url}/api/onboard`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain", Origin: url },
+      body: "{}",
+    });
+    assert.equal(wrongType.status, 415);
+
+    const coercedInstall = await fetch(`${url}/api/onboard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: url },
+      body: JSON.stringify({ installCli: "false" }),
+    });
+    assert.equal(coercedInstall.status, 400);
+    const payload = await coercedInstall.json();
+    assert.equal(payload.error.code, "INVALID_BODY");
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
+test("saved socai media is exposed through an opaque range-capable local URL", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "jev-social-media-"));
+  const socaiHome = path.join(directory, "socai");
+  const jevHome = path.join(directory, "jev");
+  const mediaPath = path.join(socaiHome, "runs", "capture", "site_media", "video.mp4");
+  await mkdir(path.dirname(mediaPath), { recursive: true });
+  await writeFile(mediaPath, "0123456789");
+  const env = { ...process.env, SOCAI_HOME: socaiHome, JEV_SOCIAL_HOME: jevHome };
+  await saveRun({ id: "media-test", result: { items: [{ video: { local_path: mediaPath } }] } }, env);
+  const { server, url } = await startServer({ port: 0, open: false, env });
+  try {
+    const runResponse = await fetch(`${url}/api/runs/media-test`);
+    assert.equal(runResponse.status, 200);
+    const run = await runResponse.json();
+    assert.match(run.result.items[0].video.browser_url, /^\/media\/[A-Za-z0-9_-]+$/);
+
+    const mediaResponse = await fetch(`${url}${run.result.items[0].video.browser_url}`, {
+      headers: { Range: "bytes=2-5" },
+    });
+    assert.equal(mediaResponse.status, 206);
+    assert.equal(mediaResponse.headers.get("content-range"), "bytes 2-5/10");
+    assert.equal(await mediaResponse.text(), "2345");
+
+    await rename(mediaPath, `${mediaPath}.original`);
+    await writeFile(mediaPath, "abcdefghij");
+    const swappedResponse = await fetch(`${url}${run.result.items[0].video.browser_url}`);
+    assert.equal(swappedResponse.status, 410);
+    assert.equal((await swappedResponse.json()).error.code, "MEDIA_CHANGED");
+  } finally {
+    await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    await rm(directory, { recursive: true, force: true });
+  }
+});

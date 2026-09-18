@@ -1,0 +1,37 @@
+{
+  "name": "jev-social",
+  "version": "0.1.0",
+  "description": "Jev-routed Instagram and TikTok research through the socai CLI",
+  "type": "module",
+  "bin": {
+    "jev-social": "./bin/jev-social.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "docs",
+    "public",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node ./bin/jev-social.js",
+    "dev": "node --watch ./bin/jev-social.js serve --no-open",
+    "check": "node --check ./bin/jev-social.js && node --check ./src/server.js && node --check ./public/app.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "jev",
+    "socai",
+    "instagram",
+    "tiktok",
+    "research"
+  ],
+  "license": "MIT"
+}

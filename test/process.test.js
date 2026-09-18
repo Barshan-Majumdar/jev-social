@@ -1,0 +1,105 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { childEnvironment, formatCommand, runProcess } from "../src/process.js";
+
+test("formatCommand shell-quotes substitutions in its display string", () => {
+  assert.equal(formatCommand("socai", ["instagram", "search", "$(echo injected)"]), "socai instagram search '$(echo injected)'");
+  assert.equal(formatCommand("socai", ["instagram", "search", "it's here"]), "socai instagram search 'it'\"'\"'s here'");
+});
+
+test("runProcess preserves signal termination without fabricating an exit code", async () => {
+  if (process.platform === "win32") return;
+  const result = await runProcess(process.execPath, ["-e", 'process.kill(process.pid, "SIGTERM")']);
+  assert.equal(result.code, null);
+  assert.equal(result.signal, "SIGTERM");
+});
+
+test("childEnvironment forwards socai/runtime settings but strips API credentials", () => {
+  const value = childEnvironment({
+    PATH: "/bin",
+    HOME: "/tmp/home",
+    SOCAI_HOME: "/tmp/socai",
+    SOCAI_API_KEY: "secret-3",
+    SOCAI_SESSION_TOKEN: "secret-4",
+    TYPESAFE_API_KEY: "secret",
+    OPENROUTER_API_KEY: "secret-2",
+  });
+  assert.deepEqual(value, { PATH: "/bin", HOME: "/tmp/home", SOCAI_HOME: "/tmp/socai" });
+});
+
+test("runProcess force-kills a child that ignores SIGTERM", async () => {
+  const startedAt = Date.now();
+  const result = await runProcess(
+    process.execPath,
+    ["-e", "process.on('SIGTERM',()=>{}); setInterval(()=>{},1000)"],
+    { timeoutMs: 80, killGraceMs: 80 },
+  );
+  assert.equal(result.timedOut, true);
+  assert.ok(Date.now() - startedAt < 3_000, "timeout should settle after the force-kill grace period");
+});
+
+test("runProcess force-kills output that exceeds the configured limit", async () => {
+  const result = await runProcess(
+    process.execPath,
+    ["-e", "process.stdout.write('x'.repeat(10000)); process.on('SIGTERM',()=>{}); setInterval(()=>{},1000)"],
+    { timeoutMs: 5_000, killGraceMs: 80, maxOutputBytes: 100 },
+  );
+  assert.equal(result.overflowed, true);
+});
+
+test("runProcess kills resistant descendants after the group leader exits", async () => {
+  const parent = `
+    const { spawn } = require("node:child_process");
+    spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{}); console.log('ready'); setInterval(()=>{},1000)"], {
+      stdio: ["ignore", "inherit", "inherit"]
+    });
+    process.on("SIGTERM", () => process.exit(0));
+    setInterval(() => {}, 1000);
+  `;
+  const startedAt = Date.now();
+  const result = await runProcess(process.execPath, ["-e", parent], {
+    timeoutMs: 200,
+    killGraceMs: 80,
+  });
+  assert.equal(result.timedOut, true);
+  assert.match(result.stdout, /ready/);
+  assert.ok(Date.now() - startedAt < 2_000, "descendant should be killed with the original process group");
+});
+
+test("runProcess frames UTF-8 stderr progress by complete lines", async () => {
+  const progress = [];
+  const script = `
+    const value = Buffer.from("progress ✓\\nlast ✓", "utf8");
+    for (const byte of value) process.stderr.write(Buffer.from([byte]));
+  `;
+  const result = await runProcess(process.execPath, ["-e", script], {
+    onStderr: (line) => progress.push(line),
+  });
+  assert.equal(result.code, 0);
+  assert.deepEqual(progress, ["progress ✓", "last ✓"]);
+});
+
+test("runProcess terminates the process tree when aborted", async () => {
+  if (process.platform === "win32") return;
+  const controller = new AbortController();
+  const script = `
+    const { spawn } = require("node:child_process");
+    const descendant = spawn(process.execPath, ["-e", "process.on('SIGTERM',()=>{}); setInterval(()=>{},1000)"], {
+      stdio: "ignore"
+    });
+    console.log(descendant.pid);
+    process.on("SIGTERM", () => process.exit(0));
+    setInterval(() => {}, 1000);
+  `;
+  const pending = runProcess(
+    process.execPath,
+    ["-e", script],
+    { signal: controller.signal, killGraceMs: 60, timeoutMs: 5_000 },
+  );
+  setTimeout(() => controller.abort(), 180);
+  const result = await pending;
+  assert.equal(result.aborted, true);
+  const descendantPid = Number(result.stdout.trim());
+  await new Promise((resolve) => setTimeout(resolve, 140));
+  assert.throws(() => process.kill(descendantPid, 0), { code: "ESRCH" });
+});

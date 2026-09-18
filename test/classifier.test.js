@@ -1,0 +1,119 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { classifySearch } from "../src/classifier.js";
+
+test("classifySearch routes a search with Jev's structured answer", async () => {
+  let request;
+  const client = {
+    async systemOne(value) {
+      request = value;
+      return {
+        model: "jev-test",
+        answers: {
+          route: {
+            type: "choice",
+            choice: "tiktok_search",
+            confidence: 0.91,
+            probabilities: { instagram_search: 0.04, tiktok_search: 0.94, unsupported: 0.02 },
+          },
+        },
+      };
+    },
+  };
+
+  const result = await classifySearch({
+    goal: "find AI creators",
+    requestedPlatform: "tiktok",
+    client,
+  });
+
+  assert.equal(result.platform, "tiktok");
+  assert.equal(result.route, "tiktok_search");
+  assert.equal(request.state.requested_platform, "tiktok");
+  assert.equal(request.questions.route.type, "choice");
+});
+
+test("classifySearch calls OpenRouter's Decisions endpoint", async () => {
+  let url;
+  let options;
+  const result = await classifySearch({
+    goal: "search Instagram for design systems",
+    apiKey: "test-key",
+    fetchImpl: async (nextUrl, nextOptions) => {
+      url = nextUrl;
+      options = nextOptions;
+      return new Response(
+        JSON.stringify({
+          model: "typesafe/jev-test",
+          answers: { route: { type: "choice", choice: "instagram_search", confidence: 0.9 } },
+          usage: {},
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    },
+  });
+  assert.equal(url, "https://openrouter.ai/api/alpha/decisions");
+  assert.match(options.headers.Authorization, /^Bearer /);
+  assert.equal(JSON.parse(options.body).model, "~typesafe/jev-latest");
+  assert.equal(result.platform, "instagram");
+});
+
+test("classifySearch rejects unknown platforms before any model call", async () => {
+  await assert.rejects(
+    classifySearch({ goal: "query", requestedPlatform: "youtube", client: {} }),
+    (error) => error.code === "INVALID_PLATFORM",
+  );
+});
+
+test("classifySearch preserves Jev unsupported decisions", async () => {
+  const client = {
+    async systemOne() {
+      return {
+        answers: {
+          route: {
+            type: "choice",
+            choice: "unsupported",
+            confidence: 0.8,
+            probabilities: { instagram_search: 0.1, tiktok_search: 0.1, unsupported: 0.8 },
+          },
+        },
+      };
+    },
+  };
+  const result = await classifySearch({ goal: "send a message", client });
+  assert.equal(result.platform, null);
+  assert.equal(result.route, "unsupported");
+});
+
+test("classifySearch never lets Jev override an explicit platform", async () => {
+  const client = {
+    async systemOne() {
+      return {
+        answers: {
+          route: {
+            type: "choice",
+            choice: "tiktok_search",
+            confidence: 0.9,
+            probabilities: { instagram_search: 0.05, tiktok_search: 0.9, unsupported: 0.05 },
+          },
+        },
+      };
+    },
+  };
+  await assert.rejects(
+    classifySearch({ goal: "find creators", requestedPlatform: "instagram", client }),
+    (error) => error.code === "JEV_ROUTE_MISMATCH",
+  );
+});
+
+test("classifySearch fails closed on a malformed Jev decision", async () => {
+  const client = {
+    async systemOne() {
+      return { answers: { route: { type: "choice", choice: "tiktok_search" } } };
+    },
+  };
+  await assert.rejects(
+    classifySearch({ goal: "find creators", client }),
+    (error) => error.code === "INVALID_JEV_RESPONSE",
+  );
+});
