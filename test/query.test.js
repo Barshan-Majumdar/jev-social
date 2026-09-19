@@ -16,6 +16,8 @@ test("extractSearchQuery removes English platform-routing language", () => {
   assert.equal(extractSearchQuery("look up 'new design tools' on instagram"), "new design tools");
   assert.equal(extractSearchQuery("find AI product managers on LinkedIn"), "AI product managers");
   assert.equal(extractSearchQuery("search LinkedIn for staff engineers"), "staff engineers");
+  assert.equal(extractSearchQuery("find handmade art on Instagram and open one relevant post to read its comments"), "handmade art");
+  assert.equal(extractSearchQuery("Find handmade art on Instagram. Open one relevant post and read its comments, then finish."), "handmade art");
 });
 
 test("extractSearchQuery removes Chinese platform-routing language", () => {
@@ -30,6 +32,7 @@ test("extractSearchQuery removes Chinese platform-routing language", () => {
   assert.equal(extractSearchQuery("在 TikTok 上搜索 AI creators 返回 10 条结果"), "AI creators");
   assert.equal(extractSearchQuery("在 TikTok 搜索 AI creators 并返回 10 条结果"), "AI creators");
   assert.equal(extractSearchQuery("在 LinkedIn 搜索 AI product managers"), "AI product managers");
+  assert.equal(extractSearchQuery("在 Instagram 搜索 handmade art。打开一个帖子"), "handmade art");
 });
 
 test("extractSearchQuery preserves an already literal search term", () => {

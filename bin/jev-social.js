@@ -9,7 +9,7 @@ import { saveOnboarding } from "../src/onboard.js";
 import { probeSocai } from "../src/socai.js";
 import { startServer } from "../src/server.js";
 
-const HELP = `jev-social — Jev-routed social research through socai CLI
+const HELP = `jev-social — Jev-directed social research through socai CLI
 
 Usage:
   jev-social                                      Start local preview
@@ -21,6 +21,7 @@ Usage:
 Search options:
   --platform <auto|instagram|tiktok|linkedin>  Platform hint (default: auto)
   --limit <1-100>                      Result limit (default: 10)
+  --max-steps <1-30>                   Decision budget (default: 12)
 
 Configuration (normally auto-loaded from .env):
   --api-key <key>                      OpenRouter API key (prompt is safer)
@@ -58,7 +59,7 @@ try {
     const flags = parseArgs(rest);
     const query = flags._.join(" ").trim();
     const run = await runSearch(
-      { query, platform: flags.platform || "auto", limit: Number(flags.limit || 10) },
+      { query, platform: flags.platform || "auto", limit: Number(flags.limit ?? 10), maxSteps: Number(flags.maxSteps ?? 12) },
       {
         onEvent(event) {
           if (event.message) console.error(`[${event.stage}] ${event.message}`);
@@ -125,6 +126,7 @@ function parseArgs(args) {
   const valueFlags = new Map([
     ["--platform", "platform"],
     ["--limit", "limit"],
+    ["--max-steps", "maxSteps"],
     ["--port", "port"],
     ["--api-key", "apiKey"],
     ["--socai-bin", "socaiBin"],

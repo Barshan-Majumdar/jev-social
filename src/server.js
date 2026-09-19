@@ -101,7 +101,7 @@ async function handleRequest(request, response, env, mediaRegistry) {
       const body = await readJson(request);
       validateSearchBody(body);
       const run = await runSearch(
-        { query: body.query, platform: body.platform, limit: body.limit },
+        { query: body.query, platform: body.platform, limit: body.limit, maxSteps: body.maxSteps },
         { env },
       );
       await registerRunMedia(run, mediaRegistry, env);
@@ -151,7 +151,7 @@ async function streamSearch(request, response, body, env, mediaRegistry) {
   response.once("close", abortIfOpen);
   try {
     const run = await runSearch(
-      { query: body.query, platform: body.platform, limit: body.limit },
+      { query: body.query, platform: body.platform, limit: body.limit, maxSteps: body.maxSteps },
       { env, onEvent: write, signal: controller.signal },
     );
     await registerRunMedia(run, mediaRegistry, env);
@@ -357,6 +357,7 @@ function validateSearchBody(body) {
   if (typeof body.query !== "string") throw httpError(400, "INVALID_BODY", "query must be a string.");
   optionalType(body, "platform", "string");
   optionalType(body, "limit", "number");
+  optionalType(body, "maxSteps", "number");
 }
 
 function assertObject(body) {

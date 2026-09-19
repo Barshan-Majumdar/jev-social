@@ -32,7 +32,7 @@
               <img src="/platforms/tiktok.png" width="28" height="28" alt="TikTok" />
               <img src="/platforms/linkedin.svg" width="28" height="28" alt="LinkedIn" />
             </p>
-            <p class="intro">Describe one Instagram, TikTok, or LinkedIn research goal. Jev routes it; the local socai CLI searches, reads, downloads, and returns the evidence.</p>
+            <p class="intro">Describe a social research goal. Jev chooses what to search and which posts or profiles to open next. socai carries out each step in your browser.</p>
 
             <form id="search-form" class="composer">
               <textarea id="query" name="query" required autocomplete="off" rows="3" placeholder="Find emerging AI creators and their most engaging posts"></textarea>
@@ -55,7 +55,7 @@
             </form>
 
             <div class="pipeline" aria-label="Execution pipeline">
-              <span>one goal</span><i>→</i><span>Jev route</span><i>→</i><span>socai CLI</span><i>→</i><span>downloaded evidence</span>
+              <span>one goal</span><i>→</i><span>Jev chooses a step</span><i>→</i><span>socai executes</span><i>↻</i><span>review evidence</span>
             </div>
           </div>
         </section>
@@ -79,6 +79,7 @@
           </section>
 
           <section id="result" class="result-canvas hidden">
+            <p id="run-status" role="status"></p>
             <div id="evidence-heading" class="canvas-head">
               <div><p class="eyebrow">CAPTURED POSTS</p><h3 id="result-summary">Results</h3></div>
               <span id="media-summary">read-only evidence</span>
@@ -91,8 +92,9 @@
             </section>
 
             <section id="research-report-section" class="report-section">
-              <div class="section-head"><p class="eyebrow">SOCAI RESEARCH REPORT</p><span>Agent-written from captured evidence</span></div>
+              <div class="section-head"><p class="eyebrow">EVIDENCE REPORT</p><span>Sources and captured details</span></div>
               <article id="socai-output" class="research-report"></article>
+              <details id="action-history"><summary>Steps chosen by Jev</summary><ol id="action-list"></ol></details>
             </section>
           </section>
         </section>

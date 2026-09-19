@@ -14,6 +14,7 @@ export async function classifySearch({
   model = process.env.OPENROUTER_JEV_MODEL || "~typesafe/jev-latest",
   client,
   fetchImpl = fetch,
+  signal,
 }) {
   const normalizedPlatform = requestedPlatform.toLowerCase();
   if (normalizedPlatform !== "auto" && !SUPPORTED_PLATFORMS.has(normalizedPlatform)) {
@@ -57,21 +58,36 @@ export async function classifySearch({
       },
     },
   };
+  const decision = await requestChoice({ request, key: "route", apiKey, client, fetchImpl, signal });
+  const selected = decision.choice;
+  const platform = ROUTE_TO_PLATFORM[selected] || null;
+  if (normalizedPlatform !== "auto" && platform !== normalizedPlatform) {
+    throw new AppError(
+      `Jev route '${selected}' conflicts with the explicitly selected ${normalizedPlatform} platform.`,
+      {
+        code: "JEV_ROUTE_MISMATCH",
+        details: { requestedPlatform: normalizedPlatform, selectedRoute: selected },
+      },
+    );
+  }
+  return { ...decision, route: selected, platform };
+}
+
+export async function requestChoice({ request, key, apiKey, client, fetchImpl = fetch, signal }) {
+  signal?.throwIfAborted();
+  const startedAt = Date.now();
   let response;
   try {
     response = client
-      ? await client.systemOne(request)
-      : await requestOpenRouterDecision({ apiKey, request, fetchImpl });
+      ? await client.systemOne(request, { signal })
+      : await requestOpenRouterDecision({ apiKey, request, fetchImpl, signal });
   } catch (error) {
-    throw new AppError(`Jev classification failed: ${error.message}`, {
-      code: "JEV_UNAVAILABLE",
-      status: 502,
-    });
+    signal?.throwIfAborted();
+    throw new AppError(`Jev decision failed: ${error.message}`, { code: "JEV_UNAVAILABLE", status: 502 });
   }
-
-  const answer = response?.answers?.route;
+  signal?.throwIfAborted();
+  const answer = response?.answers?.[key];
   const selected = answer?.choice;
-  const platform = ROUTE_TO_PLATFORM[selected] || null;
   const confidence = answer?.confidence;
   const probabilities = answer?.probabilities;
   const probabilitiesValid =
@@ -84,39 +100,29 @@ export async function classifySearch({
       ));
   if (
     answer?.type !== "choice" ||
-    !["instagram_search", "tiktok_search", "linkedin_search", "unsupported"].includes(selected) ||
+    !Object.hasOwn(request.questions[key].criteria, selected) ||
     typeof confidence !== "number" ||
     !Number.isFinite(confidence) ||
     confidence < 0 ||
     confidence > 1 ||
     !probabilitiesValid
   ) {
-    throw new AppError("Jev returned an invalid route response.", {
+    throw new AppError("Jev returned an invalid decision response.", {
       code: "INVALID_JEV_RESPONSE",
       status: 502,
     });
   }
-  if (normalizedPlatform !== "auto" && platform !== normalizedPlatform) {
-    throw new AppError(
-      `Jev route '${selected}' conflicts with the explicitly selected ${normalizedPlatform} platform.`,
-      {
-        code: "JEV_ROUTE_MISMATCH",
-        details: { requestedPlatform: normalizedPlatform, selectedRoute: selected },
-      },
-    );
-  }
-
   return {
-    route: selected,
-    platform,
+    choice: selected,
     confidence,
     probabilities,
-    model: response.model || model,
+    model: response.model || request.model,
     usage: response.usage || {},
+    elapsedMs: Date.now() - startedAt,
   };
 }
 
-async function requestOpenRouterDecision({ apiKey, request, fetchImpl }) {
+async function requestOpenRouterDecision({ apiKey, request, fetchImpl, signal }) {
   if (!apiKey?.trim()) {
     throw new Error("OPENROUTER_API_KEY is missing");
   }
@@ -128,7 +134,7 @@ async function requestOpenRouterDecision({ apiKey, request, fetchImpl }) {
       "X-Title": "jev-social",
     },
     body: JSON.stringify(request),
-    signal: AbortSignal.timeout(15_000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) {

@@ -1,5 +1,7 @@
 export { runSearch } from "./app.js";
 export { classifySearch } from "./classifier.js";
+export { chooseAction, availableActions, buildActionArgs } from "./actions.js";
+export { actionCapabilities, runSocaiAction } from "./socai.js";
 export {
   buildResearchArgs,
   buildTikTokVideoArgs,

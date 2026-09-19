@@ -80,6 +80,8 @@ function handleStreamEvent(event) {
   }
   const titles = {
     classifying: "Jev is routing the request",
+    planning: "Jev is choosing the next step",
+    reading: "socai is opening the selected result",
     executing: "socai is starting the browser",
     searching: "socai is collecting search results",
     downloading: "socai is reading and downloading videos",
@@ -94,7 +96,7 @@ function handleStreamEvent(event) {
     researching: "Reading captured posts and building the report.",
     complete: "The research report is ready.",
   };
-  showActivity(titles[event.stage] || "socai is working", descriptions[event.stage] || "Research is in progress.");
+  showActivity(titles[event.stage] || "socai is working", event.message || descriptions[event.stage] || "Research is in progress.");
 }
 
 function startTimer() {
@@ -177,6 +179,9 @@ function renderRun(run) {
   elements.reportSection.classList.remove("hidden");
   stopTimer(run.elapsedMs);
   $("#result-title").textContent = run.request || run.query || "Social results";
+  $("#run-status").textContent = run.status && run.status !== "completed" ? `Partial results · ${run.stopReason}` : "";
+  $("#action-list").replaceChildren(...(run.actions || []).map((step) => element("li", "", `${step.action.label} · ${step.status}`)));
+  $("#action-history").classList.toggle("hidden", !run.actions?.length);
 
   const items = findItems(run.result);
   const hasEvidence = items.length > 0;
@@ -184,7 +189,7 @@ function renderRun(run) {
   elements.evidenceTable.classList.toggle("hidden", !hasEvidence);
   elements.cards.classList.toggle("hidden", !hasEvidence);
   const downloaded = items.filter((item) => Boolean(localVideoSource(item))).length;
-  $("#result-summary").textContent = `${items.length} previewable ${items.length === 1 ? "record" : "records"}`;
+  $("#result-summary").textContent = `${items.length} captured ${items.length === 1 ? "record" : "records"}`;
   $("#media-summary").textContent = downloaded
     ? `${downloaded} downloaded ${downloaded === 1 ? "video" : "videos"}`
     : "read-only evidence";
@@ -206,6 +211,8 @@ function renderRun(run) {
 }
 
 function resetLiveWorkspace() {
+  $("#run-status").textContent = "";
+  $("#action-list").replaceChildren();
   elements.resultView.classList.remove("has-live-evidence");
   elements.resultView.classList.add("is-running");
   elements.result.classList.remove("hidden");
@@ -220,11 +227,11 @@ function resetLiveWorkspace() {
 }
 
 function showLiveEvidence(items) {
-  const visible = Array.isArray(items) ? items.filter(isRecord).slice(0, 4) : [];
+  const visible = Array.isArray(items) ? items.filter(isRecord) : [];
   if (!visible.length) return;
   showActivity(
-    "socai is researching the captured evidence",
-    `${visible.length} previewable ${visible.length === 1 ? "post" : "posts"} captured. Research continues.`,
+    "Jev is reviewing the results",
+    `${visible.length} ${visible.length === 1 ? "record" : "records"} captured. Choosing what to open next.`,
   );
   elements.resultView.classList.add("has-live-evidence");
   elements.result.classList.remove("hidden");

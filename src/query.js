@@ -2,11 +2,11 @@ const PLATFORM = "(?:instagram|tiktok|linkedin)";
 const ENGLISH_ACTION = "(?:search|find|look\\s+up|research)";
 const ENGLISH_POLITE = "(?:(?:could|can|would)\\s+you\\s+)?(?:please\\s+)?";
 const TRAILING_ENGLISH_INSTRUCTION =
-  "(?:\\s+please)?(?:\\s*[,;:]?\\s*(?:(?:and|then)\\s+)?(?:return|show|give|list|get)\\b.*)?";
+  "(?:\\s+please)?(?:\\s*[,;:.!?]?\\s*(?:(?:and|then)\\s+)?(?:return|show|give|list|get|open|read|download|compare|analyze)\\b.*)?";
 const CHINESE_ACTION = "(?:搜索一下|搜一下|搜索|搜|查找|检索|调研)";
 const CHINESE_POLITE = "(?:请)?(?:帮我)?";
 const TRAILING_CHINESE_INSTRUCTION =
-  "(?:\\s*(?:[，,；;]\\s*)?(?:(?:然后|并且|并请|并)\\s*)?(?:返回|找出|给我|展示|列出).*)?";
+  "(?:\\s*(?:[，,；;。]\\s*)?(?:(?:然后|并且|并请|并)\\s*)?(?:返回|找出|给我|展示|列出|打开|阅读|下载|比较).*)?";
 
 const PATTERNS = [
   new RegExp(
@@ -30,7 +30,7 @@ const PATTERNS = [
 /**
  * Convert a natural-language research request into the literal query expected by
  * `socai <platform> search <query>`. Jev still receives the complete request so
- * it can choose the correct platform.
+ * it can choose the platform and each subsequent operation.
  */
 export function extractSearchQuery(request) {
   const normalized = String(request || "").trim();

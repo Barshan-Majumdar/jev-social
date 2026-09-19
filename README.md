@@ -4,7 +4,7 @@
 
 **Jev is cool. Giving it access to your social media is cooler.**
 
-Jev makes typed decisions. [socai](https://github.com/socai-io/socai) opens your real Chrome and Instagram, TikTok, or LinkedIn; posts, profiles, comments, downloaded video, a table, a report. Not a generic browser agent guessing what the feed looked like.
+Jev chooses each next operation: search, open a particular post or profile, read comments, download a TikTok video, or finish. [socai](https://github.com/socai-io/socai) executes the selected CLI command in your real Chrome. Each result goes back to Jev before the next decision.
 
 <p>
   <img src="docs/platforms/instagram.png" height="32" alt="Instagram">
@@ -16,48 +16,50 @@ Jev makes typed decisions. [socai](https://github.com/socai-io/socai) opens your
 
 [socai](https://github.com/socai-io/socai) · [Discord](https://discord.gg/CpQdA7bwt8) · [Jev](https://typesafe.ai/)
 
-![Live run](docs/jev-social.gif)
+![Earlier routing-only demo](docs/jev-social.gif)
+
+The recording above shows the earlier routing-only prototype. Current runs include a history of every operation chosen by Jev.
 
 ## Why this pairing
 
-Jev is absurdly good at *choosing*. It is a waste of that to make it pick CSS selectors.
-
-socai already knows the sites. Search, open a reel, read a LinkedIn profile, expand comments, keep the file. The model never sees a shell. The Node process launches `socai` with an argument array.
+Jev chooses from a changing list of concrete, read-only operations. The list includes exact targets discovered in previous results, so Jev decides which post to open and which socai command to run. socai handles the underlying navigation, clicks, scrolling, and extraction; Jev does not choose arbitrary DOM coordinates or generate shell commands.
 
 ```text
-"find the loudest AI wearable posts on Instagram"
+"find handmade art on Instagram"
         │
         ▼
-   Jev · one choice
-        │
-        ├─ instagram ──► socai instagram search …
-        ├─ tiktok    ──► socai tiktok search … + get-videos --download-media
-        ├─ linkedin  ──► socai linkedin search …
-        └─ no        ──► stop
+   Jev chooses the platform
         │
         ▼
-   cards · table · report
+   Jev chooses an operation ◄──── observed results
+        │                              ▲
+        ├─ search                      │
+        ├─ open a selected profile     │
+        ├─ open a selected post        │
+        ├─ read comments / download    │
+        │         └──── socai CLI ─────┘
+        └─ finish → cards · table · evidence report
 ```
 
 https://github.com/user-attachments/assets/4849e0f3-87d5-4a0d-8e0b-2a58e3d0267a
 
-## 1/2 hours → 30 seconds
+This video also predates the per-operation Jev loop.
 
-A manual social scan is a chain of small tasks: pick a network, search, open posts, copy captions, download videos, build a table, write it up. This turns that chain into one request.
+## Available operations
 
-| Workflow | Manual | Jev × socai | |
-| --- | ---: | ---: | ---: |
-| Search one social topic | 5–10 min | 10–20 s | up to 30× |
-| Open and inspect 10 posts | 10–15 min | 20–30 s | up to 45× |
-| Download video evidence | 5–10 min | included | no extra step |
-| Build a results table | 5–15 min | immediate | no copy/paste |
-| **End-to-end trend scan** | **~30 min** | **~50 s** | **~36×** |
+| Platform | Jev can select |
+| --- | --- |
+| Instagram | Search, open a profile and its post cards, open a specific post/reel and read comments, inspect page state |
+| TikTok | Search, open an author, read a selected video and its comments, optionally download that video's media, inspect page state |
+| LinkedIn | Search people/content/companies, read a selected profile/company/post, read experience or education, inspect page state |
 
-These are demo targets, not a benchmark. Live time depends on result count, video size, login, and the site. The UI always shows the measured elapsed time for the current run.
+Only commands exposed by the installed socai CLI are offered. Targets come from captured results or explicit URLs in the user's request. Unsupported, malformed, and low-confidence decisions do not execute. Previously attempted operations are removed from the next choice set.
+
+The run stores each choice, confidence, command, observed result summary, and elapsed time. Login/access gates, decision failures, and step limits produce partial results rather than a success claim. Reports are compiled from captured text, comments, and source links; they do not hand browsing off to another agent or depend on `socai research`. Speed varies with the number of chosen operations and the live site.
 
 ## Run it
 
-An OpenRouter key with Jev access, and a current [socai](https://github.com/socai-io/socai) CLI.
+Node 20+, an OpenRouter key with Jev access, and a current [socai](https://github.com/socai-io/socai) CLI.
 
 ```bash
 curl -fsSL https://github.com/socai-io/socai/releases/latest/download/install.sh | sh
@@ -72,7 +74,10 @@ Opens `http://127.0.0.1:8766`. Loopback only. Leave the platform on **Jev · aut
 npm start -- search "find emerging design creators on Instagram" --platform auto --limit 4
 npm start -- search "find AI wearable trends on TikTok" --platform auto --limit 4
 npm start -- search "find AI product managers in San Francisco on LinkedIn" --platform auto --limit 4
+npm start -- search "find handmade art on Instagram and read the comments" --limit 4 --max-steps 12
 ```
+
+`--limit` is the target result count and per-search/profile collection size (1–100). All captured records are retained, including intermediate profile cards. `--max-steps` bounds the decision loop (1–30, default 12); each selected operation or finish decision consumes one step. The HTTP search endpoints also accept `maxSteps`.
 
 Or call socai directly:
 

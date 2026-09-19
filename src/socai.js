@@ -1,8 +1,25 @@
 import { AppError } from "./errors.js";
 import { configuredSocaiBin, defaultInstalledSocaiBin } from "./config.js";
 import { formatCommand, runProcess } from "./process.js";
+import { buildActionArgs } from "./actions.js";
 
 const PLATFORMS = ["instagram", "tiktok", "linkedin"];
+
+export async function actionCapabilities({ config = {}, env = process.env, platform, signal }) {
+  if (!PLATFORMS.includes(platform)) throw new AppError("Unsupported platform.", { code: "INVALID_PLATFORM" });
+  const bin = await resolveSocaiBin(config, env);
+  const result = await runProcess(bin, [platform, "--help"], { env, signal, timeoutMs: 15_000 });
+  if (result.aborted) throw abortedError();
+  if (result.code !== 0 || result.timedOut) throw new AppError(`Could not read socai ${platform} commands.`, { code: "SOCAI_CAPABILITY_MISSING" });
+  const help = `${result.stdout}\n${result.stderr}`;
+  const names = ["search", "get-posts", "get-videos", "profile", "author", "company", "history", "page_state"];
+  return names.filter((name) => new RegExp(`(?:^|\\s)${name}(?=\\s|$)`, "m").test(help));
+}
+
+export async function runSocaiAction({ action, config = {}, env = process.env, signal, onProgress }) {
+  const bin = await resolveSocaiBin(config, env);
+  return runSocaiJson(bin, buildActionArgs(action), { env, signal, onProgress });
+}
 
 export async function resolveSocaiBin(config = {}, env = process.env) {
   return configuredSocaiBin(config, env) || (await defaultInstalledSocaiBin());
