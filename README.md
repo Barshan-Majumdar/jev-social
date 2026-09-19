@@ -1,6 +1,6 @@
 <img src="docs/banner.png" alt="Jev × socai" width="100%" />
 
-# Jev × socai
+# Jev for social media
 
 **Jev is cool. Giving it access to your social media is cooler.**
 
