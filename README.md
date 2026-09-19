@@ -2,9 +2,16 @@
 
 # Jev × socai
 
-**Jev decides the route. [socai](https://socai.io/) does the real browser work. You get searchable posts, downloaded videos, a complete table, and an evidence-led agent report in one local page.**
+**Jev decides the route. [socai](https://github.com/socai-io/socai) does the real browser work. You get searchable posts, downloaded videos, a complete table, and an evidence-led agent report in one local page.**
 
-[Visit socai.io](https://socai.io/) · [Star socai on GitHub](https://github.com/socai-io/socai) · [Meet Jev at TypeSafe](https://typesafe.ai/)
+<p>
+  <img src="docs/platforms/instagram.png" height="32" alt="Instagram">
+  &nbsp;&nbsp;
+  <img src="docs/platforms/tiktok.png" height="32" alt="TikTok">
+</p>
+<p><sub>Instagram · TikTok</sub></p>
+
+[socai on GitHub](https://github.com/socai-io/socai) · [Discord](https://discord.gg/CpQdA7bwt8) · [Meet Jev at TypeSafe](https://typesafe.ai/)
 
 ## See it run
 
@@ -108,7 +115,7 @@ The browser opens directly at `http://127.0.0.1:8766`. The server binds only to 
 4. Play a downloaded video directly in its card.
 5. Scroll through the complete table and the **socai research report**.
 
-The header includes direct links to [socai.io](https://socai.io/) and the [socai GitHub repository](https://github.com/socai-io/socai).
+The header includes direct links to the [socai GitHub repository](https://github.com/socai-io/socai) and the [socai Discord](https://discord.gg/CpQdA7bwt8).
 
 ## Configuration
 
@@ -176,4 +183,4 @@ Tests use local mock binaries and do not require live model calls. Real searches
 
 ---
 
-Built with [Jev by TypeSafe](https://typesafe.ai/) and [socai](https://socai.io/). If this workflow is useful, [star socai on GitHub](https://github.com/socai-io/socai).
+Built with [Jev by TypeSafe](https://typesafe.ai/) and [socai](https://github.com/socai-io/socai). If this workflow is useful, [star socai](https://github.com/socai-io/socai) or [join the Discord](https://discord.gg/CpQdA7bwt8).

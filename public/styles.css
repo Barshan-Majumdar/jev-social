@@ -42,7 +42,9 @@ button { cursor: pointer; }
 .eyebrow { margin: 0; color: var(--muted); font: 700 9px/1.2 var(--mono); letter-spacing: .14em; }
 h1 { margin: 17px 0 0; font-size: clamp(54px, 8.4vw, 102px); font-weight: 790; line-height: .88; letter-spacing: -.075em; }
 h1 em { color: transparent; font-style: normal; -webkit-text-stroke: 1.5px var(--ink); }
-.intro { max-width: 650px; margin: 27px 0 24px; color: #3f434b; font-size: 15px; line-height: 1.65; }
+.platform-logos { display: flex; align-items: center; gap: 10px; margin: 18px 0 0; }
+.platform-logos img { display: block; width: 28px; height: 28px; border-radius: 7px; }
+.intro { max-width: 650px; margin: 18px 0 24px; color: #3f434b; font-size: 15px; line-height: 1.65; }
 
 .composer { border: 1.5px solid var(--ink); background: #fff; box-shadow: 7px 7px 0 rgba(255, 46, 166, .72); }
 .composer textarea { display: block; width: 100%; min-height: 112px; resize: vertical; padding: 18px; border: 0; outline: 0; background: #fff; font-size: 16px; line-height: 1.55; }
@@ -163,7 +165,6 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 760px) {
   .topbar { padding: 0 13px; }
   .brand strong { font-size: 14px; }
-  .top-actions a:first-child { display: none; }
   .search-view { place-items: start center; padding: 42px 14px; }
   h1 { font-size: 55px; }
   .composer-controls { align-items: stretch; flex-wrap: wrap; }
