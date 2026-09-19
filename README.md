@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/4849e0f3-87d5-4a0d-8e0b-2a58e3d0267a
-
 <img src="docs/banner.png" alt="Jev × socai" width="100%" />
 
 # Jev × socai
@@ -60,6 +56,8 @@ A manual social scan is a chain of small tasks: pick a network, search, open pos
 | **End-to-end trend scan** | **~30 min** | **~50 s** | **~36×** |
 
 These are demo targets, not a benchmark. Live time depends on result count, video size, login, and the site. The UI always shows the measured elapsed time for the current run.
+
+https://github.com/user-attachments/assets/4849e0f3-87d5-4a0d-8e0b-2a58e3d0267a
 
 ## Run it
 
