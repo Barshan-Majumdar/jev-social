@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/4849e0f3-87d5-4a0d-8e0b-2a58e3d0267a
+
 <img src="docs/banner.png" alt="Jev × socai" width="100%" />
 
 # Jev × socai
