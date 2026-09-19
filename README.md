@@ -4,7 +4,7 @@
 
 **Jev is cool. Giving it access to your social media is cooler.**
 
-Jev makes one typed decision — Instagram, TikTok, LinkedIn, or no. [socai](https://github.com/socai-io/socai) opens your real Chrome and does the research. Posts, profiles, comments, downloaded video, a table, a report. Not a chatbot guessing what the feed looked like.
+Jev makes typed decisions. [socai](https://github.com/socai-io/socai) opens your real Chrome and Instagram, TikTok, or LinkedIn; posts, profiles, comments, downloaded video, a table, a report. Not a generic browser agent guessing what the feed looked like.
 
 <p>
   <img src="docs/platforms/instagram.png" height="32" alt="Instagram">
@@ -24,8 +24,6 @@ Jev is absurdly good at *choosing*. It is a waste of that to make it pick CSS se
 
 socai already knows the sites. Search, open a reel, read a LinkedIn profile, expand comments, keep the file. The model never sees a shell. The Node process launches `socai` with an argument array.
 
-One goal in. Evidence out.
-
 ```text
 "find the loudest AI wearable posts on Instagram"
         │
@@ -41,9 +39,9 @@ One goal in. Evidence out.
    cards · table · report
 ```
 
-If your demo is "watch an LLM wander around a website," this is not that demo.
+https://github.com/user-attachments/assets/4849e0f3-87d5-4a0d-8e0b-2a58e3d0267a
 
-## Half an hour → about a minute
+## 1/2 hours → 30 seconds
 
 A manual social scan is a chain of small tasks: pick a network, search, open posts, copy captions, download videos, build a table, write it up. This turns that chain into one request.
 
@@ -57,11 +55,9 @@ A manual social scan is a chain of small tasks: pick a network, search, open pos
 
 These are demo targets, not a benchmark. Live time depends on result count, video size, login, and the site. The UI always shows the measured elapsed time for the current run.
 
-https://github.com/user-attachments/assets/4849e0f3-87d5-4a0d-8e0b-2a58e3d0267a
-
 ## Run it
 
-Node 20+, an OpenRouter key with Jev access, and a current [socai](https://github.com/socai-io/socai) CLI (the public build now ships Instagram and LinkedIn search).
+An OpenRouter key with Jev access, and a current [socai](https://github.com/socai-io/socai) CLI.
 
 ```bash
 curl -fsSL https://github.com/socai-io/socai/releases/latest/download/install.sh | sh
@@ -87,23 +83,6 @@ socai tiktok get-videos --video <url> --download-media --pretty
 socai linkedin search "AI product managers" --num 10 --pretty
 socai linkedin search "AI agents" --type content --num 10 --pretty
 ```
-
-## What we will not do
-
-- Invent posts when the site is empty, gated, or rate-limited
-- Let Jev write selectors, shell, or browser actions
-- Scrape in this repo — if socai did not write the file, the page does not play it
-- Post, like, follow, or message anyone
-
-Remote sites still win. Login, challenges, and disappearing media URLs are their problem, and we show the failure.
-
-## Tests
-
-```bash
-npm test
-```
-
-Mocks only. A live run needs OpenRouter and a real socai browser session.
 
 ---
 
