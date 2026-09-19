@@ -1,4 +1,4 @@
-const PLATFORM = "(?:instagram|tiktok)";
+const PLATFORM = "(?:instagram|tiktok|linkedin)";
 const ENGLISH_ACTION = "(?:search|find|look\\s+up|research)";
 const ENGLISH_POLITE = "(?:(?:could|can|would)\\s+you\\s+)?(?:please\\s+)?";
 const TRAILING_ENGLISH_INSTRUCTION =

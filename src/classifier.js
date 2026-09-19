@@ -1,6 +1,11 @@
 import { AppError } from "./errors.js";
 
-export const SUPPORTED_PLATFORMS = new Set(["instagram", "tiktok"]);
+export const SUPPORTED_PLATFORMS = new Set(["instagram", "tiktok", "linkedin"]);
+const ROUTE_TO_PLATFORM = {
+  instagram_search: "instagram",
+  tiktok_search: "tiktok",
+  linkedin_search: "linkedin",
+};
 
 export async function classifySearch({
   goal,
@@ -28,6 +33,7 @@ export async function classifySearch({
       supported_workflows: [
         "Read-only Instagram search via the socai CLI",
         "Read-only TikTok search via the socai CLI",
+        "Read-only LinkedIn search via the socai CLI",
       ],
     },
     questions: {
@@ -44,6 +50,7 @@ export async function classifySearch({
         criteria: {
           instagram_search: "Search or research Instagram content, profiles, posts, or reels.",
           tiktok_search: "Search or research TikTok content, creators, or videos.",
+          linkedin_search: "Search or research LinkedIn people, companies, posts, or professional experience.",
           unsupported:
             "Anything else, including posting, liking, following, messaging, or an ambiguous auto route.",
         },
@@ -64,7 +71,7 @@ export async function classifySearch({
 
   const answer = response?.answers?.route;
   const selected = answer?.choice;
-  const platform = selected === "instagram_search" ? "instagram" : selected === "tiktok_search" ? "tiktok" : null;
+  const platform = ROUTE_TO_PLATFORM[selected] || null;
   const confidence = answer?.confidence;
   const probabilities = answer?.probabilities;
   const probabilitiesValid =
@@ -77,7 +84,7 @@ export async function classifySearch({
       ));
   if (
     answer?.type !== "choice" ||
-    !["instagram_search", "tiktok_search", "unsupported"].includes(selected) ||
+    !["instagram_search", "tiktok_search", "linkedin_search", "unsupported"].includes(selected) ||
     typeof confidence !== "number" ||
     !Number.isFinite(confidence) ||
     confidence < 0 ||

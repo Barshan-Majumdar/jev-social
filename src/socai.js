@@ -2,7 +2,7 @@ import { AppError } from "./errors.js";
 import { configuredSocaiBin, defaultInstalledSocaiBin } from "./config.js";
 import { formatCommand, runProcess } from "./process.js";
 
-const PLATFORMS = ["instagram", "tiktok"];
+const PLATFORMS = ["instagram", "tiktok", "linkedin"];
 
 export async function resolveSocaiBin(config = {}, env = process.env) {
   return configuredSocaiBin(config, env) || (await defaultInstalledSocaiBin());

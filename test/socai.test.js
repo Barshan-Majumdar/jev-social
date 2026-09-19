@@ -23,6 +23,22 @@ test("buildSearchArgs owns the stable socai CLI contract", () => {
     "--pretty",
   ]);
   assert.throws(() => buildSearchArgs("tiktok", "x", 0), /between 1 and 100/);
+  assert.deepEqual(buildSearchArgs("linkedin", "AI PM", 8), [
+    "linkedin",
+    "search",
+    "AI PM",
+    "--num",
+    "8",
+    "--pretty",
+  ]);
+  assert.deepEqual(buildSearchArgs("instagram", "AI wearables", 10), [
+    "instagram",
+    "search",
+    "AI wearables",
+    "--num",
+    "10",
+    "--pretty",
+  ]);
 });
 
 test("buildTikTokVideoArgs requests real media downloads for every result", () => {
@@ -118,7 +134,7 @@ if (args.length === 1 && args[0] === "--help") {
     const env = { ...process.env, SOCAI_BIN: mock, OPENROUTER_API_KEY: "must-not-leak" };
     const status = await probeSocai({}, env);
     assert.equal(status.installed, true);
-    assert.deepEqual(status.capabilities, { instagram: false, tiktok: true });
+    assert.deepEqual(status.capabilities, { instagram: false, tiktok: true, linkedin: false });
 
     const progress = [];
     const result = await runSocaiSearch({

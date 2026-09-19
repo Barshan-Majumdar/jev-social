@@ -36,7 +36,7 @@ export async function runSearch(
     client,
   });
   if (!classification.platform) {
-    throw new AppError("Jev classified this request as unsupported. Choose Instagram or TikTok and use a read-only search.", {
+    throw new AppError("Jev classified this request as unsupported. Choose Instagram, TikTok, or LinkedIn and use a read-only search.", {
       code: "UNSUPPORTED_TASK",
       details: { classification },
     });

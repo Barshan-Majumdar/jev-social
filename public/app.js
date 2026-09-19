@@ -136,7 +136,7 @@ async function refreshStatus() {
     const status = await api("/api/status");
     setStatus("jev", status.jevConfigured, status.jevConfigured ? "Jev ready" : "Jev needs a key");
     const caps = status.socai.capabilities || {};
-    const ready = status.socai.installed && (caps.instagram || caps.tiktok);
+    const ready = status.socai.installed && (caps.instagram || caps.tiktok || caps.linkedin);
     setStatus("socai", ready, ready ? "socai ready" : "socai unavailable");
   } catch (error) {
     showError(error);

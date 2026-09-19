@@ -1,7 +1,7 @@
 {
   "name": "jev-social",
   "version": "0.1.0",
-  "description": "Jev-routed Instagram and TikTok research through the socai CLI",
+  "description": "Jev-routed Instagram, TikTok, and LinkedIn research through the socai CLI",
   "type": "module",
   "bin": {
     "jev-social": "./bin/jev-social.js"
@@ -31,6 +31,7 @@
     "socai",
     "instagram",
     "tiktok",
+    "linkedin",
     "research"
   ],
   "license": "MIT"

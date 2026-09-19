@@ -58,6 +58,30 @@ test("classifySearch calls OpenRouter's Decisions endpoint", async () => {
   assert.equal(result.platform, "instagram");
 });
 
+test("classifySearch routes LinkedIn through the same typed choice", async () => {
+  const client = {
+    async systemOne() {
+      return {
+        answers: {
+          route: {
+            type: "choice",
+            choice: "linkedin_search",
+            confidence: 0.88,
+            probabilities: { instagram_search: 0.04, tiktok_search: 0.03, linkedin_search: 0.88, unsupported: 0.05 },
+          },
+        },
+      };
+    },
+  };
+  const result = await classifySearch({
+    goal: "find AI product managers in San Francisco",
+    requestedPlatform: "linkedin",
+    client,
+  });
+  assert.equal(result.platform, "linkedin");
+  assert.equal(result.route, "linkedin_search");
+});
+
 test("classifySearch rejects unknown platforms before any model call", async () => {
   await assert.rejects(
     classifySearch({ goal: "query", requestedPlatform: "youtube", client: {} }),

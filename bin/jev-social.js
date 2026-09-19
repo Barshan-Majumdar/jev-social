@@ -19,7 +19,7 @@ Usage:
   jev-social serve [--port 8766] [--no-open]      Start local preview
 
 Search options:
-  --platform <auto|instagram|tiktok>  Platform hint (default: auto)
+  --platform <auto|instagram|tiktok|linkedin>  Platform hint (default: auto)
   --limit <1-100>                      Result limit (default: 10)
 
 Configuration (normally auto-loaded from .env):
