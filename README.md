@@ -83,6 +83,14 @@ npx --yes github:socai-io/jev-social onboard
 npx --yes github:socai-io/jev-social
 ```
 
+To let Codex, Claude Code, Cursor, or another compatible agent invoke the same browser-grounded workflow as a skill:
+
+```bash
+npx skills add socai-io/jev-social --skill jev-social
+```
+
+The skill pins the documented Jev Social CLI release, preserves its read-only and login-gate boundaries, and returns source-linked evidence instead of raw run JSON. Platform availability is checked against the installed socai CLI before a run.
+
 To work from a source checkout instead:
 
 ```bash
