@@ -3,6 +3,7 @@ import {
   getReportMarkdown,
   isReportDownloadable,
 } from "./report-download.js";
+import { bindPromptButtons } from "./prompts.js";
 
 const $ = (selector) => document.querySelector(selector);
 const elements = {
@@ -13,6 +14,8 @@ const elements = {
   activityTitle: $("#activity-title"),
   activityMessage: $("#activity-message"),
   error: $("#error"),
+  errorMessage: $("#error-message"),
+  errorClose: $("#close-error"),
   result: $("#result"),
   cards: $("#cards"),
   evidenceHeading: $("#evidence-heading"),
@@ -73,6 +76,7 @@ if (typeof window !== "undefined") {
   window.downloadReport = downloadReport;
 }
 $("#close-detail").addEventListener("click", () => elements.dialog.close());
+$("#close-error")?.addEventListener("click", clearError);
 elements.dialog.addEventListener("click", (event) => {
   if (event.target === elements.dialog) elements.dialog.close();
 });
@@ -83,6 +87,11 @@ window.addEventListener("popstate", () => {
 });
 
 void refreshStatus();
+bindPromptButtons({
+  buttons: document.querySelectorAll(".prompt-example-btn"),
+  queryElement: $("#query"),
+  platformElement: $("#platform"),
+});
 
 function handleStreamEvent(event) {
   if (event.stage === "result") return;
@@ -187,13 +196,22 @@ function showActivity(title, message) {
 
 function showError(error) {
   elements.activity.classList.add("hidden");
-  elements.error.textContent = error.message;
+  const message = error?.message || String(error || "An unexpected error occurred.");
+  if (elements.errorMessage) {
+    elements.errorMessage.textContent = message;
+  } else {
+    elements.error.textContent = message;
+  }
   elements.error.classList.remove("hidden");
 }
 
 function clearError() {
   elements.error.classList.add("hidden");
-  elements.error.textContent = "";
+  if (elements.errorMessage) {
+    elements.errorMessage.textContent = "";
+  } else {
+    elements.error.textContent = "";
+  }
 }
 
 function renderRun(run) {

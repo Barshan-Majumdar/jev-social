@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;700;800&display=swap" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=2" />
   </head>
   <body>
     <div class="app-shell">
@@ -23,7 +23,10 @@
         </nav>
       </header>
 
-      <section id="error" class="error-box hidden" role="alert"></section>
+      <section id="error" class="error-box hidden" role="alert">
+        <span id="error-message" class="error-message"></span>
+        <button id="close-error" class="error-close" type="button" aria-label="Dismiss error">×</button>
+      </section>
 
       <main class="app-main">
         <section id="search-view" class="view search-view">
@@ -56,6 +59,24 @@
                 <button class="button primary" type="submit">Run social research <span>↗</span></button>
               </div>
             </form>
+
+            <div class="prompt-examples" aria-label="Example research goals">
+              <span class="prompt-examples-label">Examples</span>
+              <div class="prompt-examples-list">
+                <button type="button" class="prompt-example-btn" data-platform="instagram" data-query="Find handmade art creators and inspect their most engaging posts">
+                  <span class="prompt-platform">Instagram</span>
+                  <span class="prompt-text">Handmade art creators</span>
+                </button>
+                <button type="button" class="prompt-example-btn" data-platform="tiktok" data-query="Find emerging AI creators and inspect their most engaging videos">
+                  <span class="prompt-platform">TikTok</span>
+                  <span class="prompt-text">Emerging AI creators</span>
+                </button>
+                <button type="button" class="prompt-example-btn" data-platform="linkedin" data-query="Find AI product managers and examine their recent shared posts">
+                  <span class="prompt-platform">LinkedIn</span>
+                  <span class="prompt-text">AI product managers</span>
+                </button>
+              </div>
+            </div>
 
             <div class="pipeline" aria-label="Execution pipeline">
               <span>one goal</span><i>→</i><span>Jev chooses a step</span><i>→</i><span>socai executes</span><i>↻</i><span>review evidence</span>
