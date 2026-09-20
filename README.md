@@ -83,7 +83,13 @@ npx github:socai-io/jev-social#v0.1.3 onboard
 npx github:socai-io/jev-social#v0.1.3
 ```
 
-To let Codex, Claude Code, Cursor, or another compatible agent invoke the same browser-grounded workflow as a skill:
+To let Codex invoke the same browser-grounded workflow through GitHub CLI 2.101 or newer:
+
+```bash
+gh skill install socai-io/jev-social jev-social@v0.1.3 --agent codex --scope user
+```
+
+Or install it with the cross-agent Skills CLI:
 
 ```bash
 npx skills add socai-io/jev-social --skill jev-social
