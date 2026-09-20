@@ -62,6 +62,16 @@ Only commands exposed by the installed socai CLI are offered. Targets come from 
 
 The run stores each choice, confidence, command, observed result summary, and elapsed time. Login/access gates, decision failures, and step limits produce partial results rather than a success claim. Reports are compiled from captured text, comments, and source links; they do not hand browsing off to another agent or depend on `socai research`. Speed varies with the number of chosen operations and the live site.
 
+## Recorded evidence
+
+| Recorded run | Captured result | Elapsed time | Verification boundary |
+| --- | --- | ---: | --- |
+| [Instagram Jev research loop](docs/example-report.md) | Four source-linked records after two searches and one post-detail read | 63.969 s | Complete dated run; claims remain limited to captured evidence |
+| [TikTok CLI search](docs/tiktok-evidence.md#search) | Five public TikTok result URLs | 7.570 s | socai CLI timing, not Jev decision-loop timing |
+| [TikTok video detail](docs/tiktok-evidence.md#video-detail-and-media-download) | Metadata, a 7,988,959-byte MP4, and a 95,592-byte poster | 38.263 s | Partial run: media succeeded, comments were unavailable |
+
+These are individual local observations, not a benchmark or guaranteed latency. Live-site behavior, network conditions, login state, and the operations Jev selects can change the total time.
+
 ## Run it
 
 Node 20+, an OpenRouter key with Jev access, and a current [socai](https://github.com/socai-io/socai) CLI.
