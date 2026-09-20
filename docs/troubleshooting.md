@@ -20,7 +20,7 @@ Jev Social intentionally acts within your real, local browser environment:
 
 | State | What Happened | What You See | How to Resolve |
 | --- | --- | --- | --- |
-| **Missing `socai` executable** | The `socai` CLI is not installed or not discoverable at the resolved binary path. | Status indicator displays `socai unavailable`, or terminal reports `spawn ENOENT` / command not found. | Run `npm start -- onboard` (or `npx jev-social onboard`) to install the official CLI, or point `SOCAI_BIN` to your installed binary. |
+| **Missing `socai` executable** | The `socai` CLI is not installed or not discoverable at the resolved binary path. | Status indicator displays `socai unavailable`, or terminal reports `spawn ENOENT` / command not found. | On macOS and Windows, run `npm start -- onboard` (or `npx jev-social onboard`). On Linux, install from source via Cargo (`cargo install --git https://github.com/socai-io/socai.git`) and set `SOCAI_BIN`. |
 | **Browser connection failure** | `socai` cannot connect to Chrome or its DevTools protocol (CDP) endpoint. | Error indicates connection refusal (e.g. `ECONNREFUSED 127.0.0.1:9222`), socket error, or browser launch timeout. | Follow your active connection mode below. Ensure the target Chrome instance is running with remote debugging enabled and accept any remote-debugging permission prompts. Avoid blanket process-killing commands. |
 | **Login-required / challenge gate** | The platform blocked unauthenticated access with a login modal, redirect (e.g. `authwall`), or CAPTCHA. | Status displays a partial result notice with the specific gate reason (for example, `Partial results · The platform requires attention: login_required`). | Open the platform in the specific Chrome session or profile selected by `socai`, complete authentication or challenges, and verify browsing before re-running. |
 | **Valid empty result** | The platform loaded successfully and the search executed cleanly, but returned 0 matching records. | Evidence cards, table, and heading remain hidden. The run may finalize as `partial` (e.g. `Partial results · Jev stopped without usable evidence.`), `step_limit`, or `decision_failed`. | The search executed cleanly without matching records. Broaden or rephrase your query. |
@@ -93,19 +93,49 @@ Because resolution is not pinned to a single binary and may differ from what is 
 /path/from-api-status --version
 ```
 
+### 3. Installing or Reinstalling `socai`
+
+- **macOS & Windows**: Run automated onboarding to download and install the official release:
+  ```bash
+  npm start -- onboard
+  ```
+- **Linux & Source Builds**: The prebuilt installer supports macOS and Windows. On Linux, install via Cargo or build from source:
+  ```bash
+  # Install via Cargo:
+  cargo install --git https://github.com/socai-io/socai.git
+
+  # Or build from source:
+  git clone https://github.com/socai-io/socai.git
+  cd socai && cargo build --release
+  export SOCAI_BIN="$(pwd)/target/release/socai"
+  ```
+
 ---
 
 ## Browser Connection & Session Modes
 
-Jev Social forwards Chrome and Chrome DevTools Protocol (CDP) settings to child `socai` processes:
-- `SOCAI_CDP_URL` / `SOCAI_CDP_WS`: Connects to an existing Chrome instance or remote debugging endpoint.
-- `SOCAI_CHROME_PROFILE`: Selects the profile connection mode (`existing`, `managed`, or `auto`).
-- `SOCAI_CHROME_USER_DATA_DIR`: Specifies a custom Chrome user data directory path.
-- `SOCAI_CHROME_EXECUTABLE`: Specifies the Chrome or Chromium binary path.
+`socai` manages its Chrome connection mode and profile directory through its configuration commands. To configure which browser session `socai` uses:
+
+```bash
+# Select profile connection mode: existing, managed, or auto
+/path/from-api-status config set chrome.profile existing
+
+# Select a custom Chrome profile / user data directory:
+/path/from-api-status config set chrome.profile_dir /path/to/profile/dir
+
+# Inspect active configuration:
+/path/from-api-status config get
+```
+
+- **`existing`**: `socai` attaches to a running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`).
+- **`managed`**: `socai` starts and controls a dedicated Chrome process.
+- **`auto`**: `socai` attempts to detect an existing Chrome session or falls back to managed launch.
+
+Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCAI_CHROME_PROFILE`, `SOCAI_CHROME_USER_DATA_DIR`, and `SOCAI_CHROME_EXECUTABLE`) to child processes during runtime discovery.
 
 ### Working with Browser Sessions Safely
 
-1. **Identify the Active Profile**: `socai` can use an existing running browser, a managed instance, or an auto-detected profile based on `SOCAI_CHROME_PROFILE` and `SOCAI_CHROME_USER_DATA_DIR`. When logging in or solving challenges, ensure you are interacting with the **exact Chrome session/profile selected by `socai`**. Logging into a different profile or everyday browser window will not share session cookies with `socai`.
+1. **Authenticate the Active Profile**: When logging into social platforms or solving challenges, ensure you are interacting with the **exact Chrome session and profile directory configured in `socai`** (`chrome.profile` and `chrome.profile_dir`). Logging into an everyday, unlinked browser profile will not share cookies or sessions with `socai`.
 2. **Existing-Profile Remote Debugging Permission**: If attaching `socai` to an existing Chrome profile via remote debugging (e.g. `--remote-debugging-port=9222`), Chrome may display an infobar or confirmation prompt requesting permission for remote debugging/automation. Confirm that this permission is granted.
 3. **Avoid Blanket Process Termination**: Do not use blanket commands such as `pkill chrome` or `killall chrome`. Arbitrarily closing processes can destroy the exact running Chrome session, debugging port, or authenticated state that `socai` is configured to reuse.
 
