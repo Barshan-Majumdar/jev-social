@@ -85,7 +85,13 @@ export function runProcess(command, args, options = {}) {
       reject(error);
       return;
     }
-    const child = spawn(command, args, {
+    let spawnCommand = command;
+    let spawnArgs = args;
+    if (process.platform === "win32" && /\.[cm]?js$/i.test(command)) {
+      spawnCommand = process.execPath;
+      spawnArgs = [command, ...args];
+    }
+    const child = spawn(spawnCommand, spawnArgs, {
       cwd,
       env: childEnvironment(env),
       windowsHide: true,
