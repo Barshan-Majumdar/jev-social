@@ -1,18 +1,30 @@
 # Troubleshooting
 
-Jev Social directs your local Chrome browser through the [socai](https://github.com/socai-io/socai) CLI to collect evidence visible to the active browser session. This guide explains how to identify and resolve common setup, connection, and platform access barriers while preserving the project's honest local-browser boundary.
+Jev Social directs your Chrome browser through the [socai](https://github.com/socai-io/socai) CLI to collect evidence visible to the active browser session. This guide explains how to identify and resolve common setup, connection, and platform access barriers while preserving the project's honest browser boundary.
 
 > [!WARNING]
-> **Review and redact reports before sharing**: Because Jev Social operates within your active browser session, captured evidence may include access-restricted posts, private account connections, author names, bio/experience data, comments, and direct URLs. Downloaded `report.md` files preserve these extracted details. Always review and redact sensitive or personal information before sharing reports publicly.
+> **Data Retention & Privacy Notice**:
+> - **Archived Runs**: Finalized runs persist full evidence, captured cards, and raw `socaiOutputs` stdout text to disk at `~/.jev-social/runs/<id>.json` (or `$JEV_SOCIAL_HOME/runs/`).
+> - **Retention & Removal**: You can review archived JSON files or purge them at any time:
+>   ```bash
+>   # macOS / Linux
+>   rm -rf ~/.jev-social/runs/*
+>
+>   # Windows PowerShell
+>   Remove-Item -Recurse -Force ~/.jev-social/runs/*
+>   ```
+> - **Review Before Sharing**: Exported `report.md` files and run JSON archives preserve access-restricted posts, private account connections, author names, bio/experience data, comments, and direct URLs from your active session. Always review and redact sensitive data before sharing reports publicly.
 
 ---
 
 ## Local Browser Boundary
 
-Jev Social intentionally acts within your real, local browser environment:
+By default (using `existing` or `managed` Chrome modes without external endpoint overrides), Jev Social operates strictly within your local Chrome browser environment:
 - **No authentication bypasses**: It does not bypass login screens, CAPTCHAs, bot challenges, or platform rate limits.
 - **No credential injection**: It does not store passwords, scrape private cookies, or use rotating proxy pools.
 - **Honest failure reporting**: When a site gates content behind a login wall or rate limit, Jev Social halts visibly and returns partial results rather than inventing data or claiming false success.
+
+*(Note: If `socai` is configured with `chrome.profile remote` or pointed to an explicit hosted `SOCAI_CDP_URL` / `SOCAI_CDP_WS` endpoint, browser automation runs on that designated remote host, while the same honest boundary and non-bypass rules still apply.)*
 
 ---
 
@@ -24,7 +36,8 @@ Jev Social intentionally acts within your real, local browser environment:
 | **Browser connection failure** | `socai` cannot connect to Chrome or its DevTools protocol (CDP) endpoint. | Error indicates connection refusal (e.g. `ECONNREFUSED 127.0.0.1:9222`), socket error, or browser launch timeout. | Follow your active connection mode below. Ensure the target Chrome instance is running with remote debugging enabled and accept any remote-debugging permission prompts. Avoid blanket process-killing commands. |
 | **Login-required / challenge gate** | The platform blocked unauthenticated access with a login modal, redirect (e.g. `authwall`), or CAPTCHA. | Status displays a partial result notice with the specific gate reason (for example, `Partial results · The platform requires attention: login_required`). | Open the platform in the specific Chrome session or profile selected by `socai`, complete authentication or challenges, and verify browsing before re-running. |
 | **Valid empty result** | The platform loaded successfully and the search executed cleanly, but returned 0 matching records. | Evidence cards, table, and heading remain hidden. The run finalizes as `partial` (`Partial results · Jev stopped without usable evidence.`) or `step_limit` if max steps were reached. | The search executed cleanly without matching records on the platform. Broaden or rephrase your search query. |
-| **Model decision failure** | Jev encountered an error communicating with the model (e.g. OpenRouter timeout, API rate limit, or invalid response) mid-run. | Status displays `Partial results · <error message>` with status `decision_failed`. | Check network connectivity to OpenRouter, ensure your API key and quota are valid, or retry the request. |
+| **Early decision or classification failure** | Jev encountered an error during classification or the very first action decision before any operations ran. | Stream emits an error event immediately without saving a run or generating a report. | Ensure your query is a supported read-only social research goal, specify `--platform` explicitly, or check your OpenRouter key and network connection. |
+| **Mid-run decision failure (`decision_failed`)** | A model decision call failed after one or more actions had already executed. | Status displays `Partial results · <error message>` with status `decision_failed`; collected evidence prior to the failure is preserved. | Check OpenRouter API connectivity, ensure model quota is available, or retry the request. |
 
 ---
 
@@ -56,7 +69,7 @@ curl -s http://127.0.0.1:8766/api/status | node -e '
 '
 ```
 
-Expected output confirms configuration without exposing credentials or local filesystem paths (`socai.capabilities.linkedin` is capability-dependent and evaluates to `true` or `false` depending on your active build, such as `false` on `v0.5.6`):
+Expected output on an official `socai v0.6+` build (or a development build with social commands enabled):
 
 ```json
 {
@@ -67,11 +80,13 @@ Expected output confirms configuration without exposing credentials or local fil
     "capabilities": {
       "instagram": true,
       "tiktok": true,
-      "linkedin": false
+      "linkedin": true
     }
   }
 }
 ```
+
+*(Note: Platform capabilities are build-dependent. The official social CLI requires `v0.6+` or a development build with social subcommands enabled; older tagged releases such as `v0.5.6` registered only `xhs` and `dy`, so `instagram`, `tiktok`, and `linkedin` will all probe `false`. On `v0.6+` builds, `linkedin` evaluates to `true` or `false` depending on whether that specific build enables the LinkedIn subcommand.)*
 
 You can also run the CLI status command:
 
@@ -120,7 +135,7 @@ Because resolution is not pinned to a single binary and may differ from what is 
 `socai` manages its Chrome connection mode and profile directory through its configuration commands. To configure which browser session `socai` uses:
 
 ```bash
-# Select profile connection mode: existing, managed, or auto
+# Select profile connection mode: existing, managed, auto, or remote
 /path/from-api-status config set chrome.profile existing
 
 # Select a custom Chrome profile / user data directory (applies to managed and auto modes):
@@ -133,14 +148,16 @@ Because resolution is not pinned to a single binary and may differ from what is 
 /path/from-api-status config get
 ```
 
-- **`existing`**: `socai` attaches to a running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`). `chrome.profile_dir` does not apply to `existing` mode since it connects to the already-running browser.
-- **`managed`**: `socai` starts and controls a dedicated Chrome process using `chrome.profile_dir` (or a managed temporary profile).
+- **Precedence**: If an explicit `SOCAI_CDP_WS` or `SOCAI_CDP_URL` environment variable is set, it takes precedence first over configured profile modes.
+- **`existing`**: `socai` attaches to an already-running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`). `chrome.profile_dir` does not apply to `existing` mode since it connects to the active browser.
+- **`managed`**: `socai` starts and controls a dedicated Chrome process. By default, it uses the persistent profile directory at `~/.socai/chrome-profile` (or `chrome.profile_dir` if configured), preserving login credentials and cookies across runs.
 - **`auto`**: `socai` tries managed launch first, then falls back to connecting to an existing Chrome instance (`core/src/cdp/lifecycle.rs:403-411`).
+- **`remote`**: `socai` connects to a remote browser endpoint specified in configuration.
 
 > [!TIP]
 > If changing `chrome.*` configuration while the background `socai` daemon or browser is running, run `/path/from-api-status stop` (or `socai stop`) so the daemon reloads settings on the next run.
 
-Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCAI_CHROME_PROFILE`, `SOCAI_CHROME_USER_DATA_DIR`, and `SOCAI_CHROME_EXECUTABLE`) to child processes during runtime discovery.
+Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCAI_CHROME_USER_DATA_DIR`, and `SOCAI_CHROME_EXECUTABLE`) to child processes during runtime discovery. (Note: `socai` does not read `SOCAI_CHROME_PROFILE`; use `socai config set chrome.profile` to configure the connection mode.)
 
 ### Working with Browser Sessions Safely
 
@@ -153,7 +170,7 @@ Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCA
 ## Platform-Specific Troubleshooting
 
 ### Instagram
-- **Issue**: Instagram frequently displays a login modal after 1–2 page scrolls or redirects queries to `/accounts/login/`.
+- **Issue**: Instagram frequently prompts with a login modal or redirects unauthenticated queries to `/accounts/login/`.
 - **Resolution**: Open `https://www.instagram.com` within the Chrome session/profile selected by `socai`, log into your account, and verify you can browse posts without a login modal. Then re-run Jev Social.
 
 ### TikTok
@@ -165,7 +182,7 @@ Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCA
 
 ### LinkedIn
 - **Issue**: LinkedIn redirects unauthenticated searches for people, content, or companies to `linkedin.com/authwall`.
-- **Capability Prerequisite**: Binary resolution is dynamic and depends on the active `socai` executable. For example, testing with `socai v0.5.6` shows it returns exit code 2 and reports `socai.capabilities.linkedin: false` because the subcommand was not enabled in that build. Direct LinkedIn CLI commands require an executable with LinkedIn support enabled (or setting `SOCAI_BIN` to a capable build).
+- **Capability Prerequisite**: Binary resolution is dynamic and depends on the active `socai` executable. Direct LinkedIn CLI commands require an executable with LinkedIn support enabled (e.g. a LinkedIn-capable `v0.6+` build or setting `SOCAI_BIN` to a capable executable).
 - **Supported Diagnostics**:
   - Check platform capability via the local status endpoint:
     ```bash
@@ -204,5 +221,8 @@ When a run naturally halts at a barrier—such as a login or challenge wall (`st
 ### Manual Cancellation
 
 When a run is manually cancelled (e.g. by navigating back to search, clicking back, or closing the stream connection):
-- **Shutdown Behavior**: The abort signal requests process shutdown immediately (sending SIGTERM, with up to a one-second grace period before SIGKILL). Detached background browser sessions or running `socai` daemons may remain active.
+- **Shutdown Behavior**:
+  - During the model request phase (classification or action choice via OpenRouter), the in-flight HTTP request is cancelled via `AbortSignal` with no child process signals involved.
+  - During a running `socai` child operation, process tree termination is requested immediately: on Unix (macOS / Linux), `SIGTERM` is sent to the process group followed by `SIGKILL` after a one-second grace period; on Windows, `child.kill("SIGTERM")` is sent followed by `taskkill.exe /pid <pid> /t /f` after the one-second grace period.
+  - Detached background browser sessions or the standalone `socai` daemon may remain running.
 - **Observable Guarantee**: Cancellation stops active work and may end without a newly rendered run view or downloadable report in the UI. While an abort during the decision loop bypasses report compilation and run persistence, a disconnect during or after persistence can leave a saved run on disk while suppressing the final UI event.
