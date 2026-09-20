@@ -1,6 +1,6 @@
-<img src="https://raw.githubusercontent.com/socai-io/jev-social/main/docs/banner.png" alt="Jev × socai" width="100%" />
+<img src="https://raw.githubusercontent.com/socai-io/jev-social/main/docs/banner.png" alt="Jev Social — Jev × socai" width="100%" />
 
-# Jev for social media
+# Jev Social — browser-grounded social research
 
 **Jev is cool. Giving it access to your social media is cooler.**
 
