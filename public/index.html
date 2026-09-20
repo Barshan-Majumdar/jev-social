@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
     <title>Jev × socai · social research</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@500;700;800&display=swap" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -92,7 +95,13 @@
             </section>
 
             <section id="research-report-section" class="report-section">
-              <div class="section-head"><p class="eyebrow">EVIDENCE REPORT</p><span>Sources and captured details</span></div>
+              <div class="section-head">
+                <div>
+                  <p class="eyebrow">EVIDENCE REPORT</p>
+                  <span>Sources and captured details</span>
+                </div>
+                <button id="download-report" class="report-download-btn hidden" type="button" disabled>Download report.md</button>
+              </div>
               <article id="socai-output" class="research-report"></article>
               <details id="action-history"><summary>Steps chosen by Jev</summary><ol id="action-list"></ol></details>
             </section>

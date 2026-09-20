@@ -20,6 +20,10 @@ const STATIC_FILES = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/app.js": ["app.js", "text/javascript; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
+  "/report-download.js": ["report-download.js", "text/javascript; charset=utf-8"],
+  "/platforms/instagram.png": ["platforms/instagram.png", "image/png"],
+  "/platforms/tiktok.png": ["platforms/tiktok.png", "image/png"],
+  "/platforms/linkedin.svg": ["platforms/linkedin.svg", "image/svg+xml"],
 };
 
 export async function startServer({ port = 8766, open = true, env = process.env } = {}) {
@@ -59,6 +63,10 @@ async function handleRequest(request, response, env, mediaRegistry) {
         ? await serveMedia(request, response, media)
         : sendJson(response, 404, { error: { code: "MEDIA_NOT_FOUND", message: "Media not found." } });
     }
+    if (request.method === "GET" && url.pathname === "/favicon.ico") {
+      response.writeHead(204, { "Cache-Control": "public, max-age=86400" });
+      return response.end();
+    }
     if (request.method === "GET" && STATIC_FILES[url.pathname]) {
       const [filename, contentType] = STATIC_FILES[url.pathname];
       const content = await readFile(path.join(PUBLIC_DIR, filename));
@@ -67,7 +75,7 @@ async function handleRequest(request, response, env, mediaRegistry) {
         "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
         "Content-Security-Policy":
-          "default-src 'self'; img-src 'self' https: data:; media-src 'self' https: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+          "default-src 'self'; img-src 'self' https: data:; media-src 'self' https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
       });
       return response.end(content);
     }

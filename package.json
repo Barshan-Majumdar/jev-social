@@ -27,7 +27,7 @@
   "scripts": {
     "start": "node ./bin/jev-social.js",
     "dev": "node --watch ./bin/jev-social.js serve --no-open",
-    "check": "node --check ./bin/jev-social.js && node --check ./src/server.js && node --check ./public/app.js",
+    "check": "node --check ./bin/jev-social.js && node --check ./src/server.js && node --check ./public/app.js && node --check ./public/report-download.js",
     "test": "node --test"
   },
   "engines": {

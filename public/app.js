@@ -1,3 +1,9 @@
+import {
+  downloadReport,
+  getReportMarkdown,
+  isReportDownloadable,
+} from "./report-download.js";
+
 const $ = (selector) => document.querySelector(selector);
 const elements = {
   searchView: $("#search-view"),
@@ -13,6 +19,7 @@ const elements = {
   evidenceTable: $("#evidence-table"),
   reportSection: $("#research-report-section"),
   output: $("#socai-output"),
+  downloadReportBtn: $("#download-report"),
   elapsed: $("#elapsed-time"),
   dialog: $("#detail-dialog"),
   detail: $("#detail-content"),
@@ -21,6 +28,7 @@ const elements = {
 let timer;
 let startedAt = 0;
 let activeController;
+let currentRun;
 
 elements.searchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -54,6 +62,16 @@ $("#back-to-search").addEventListener("click", () => {
   if (location.hash === "#results") history.back();
   else showSearchView();
 });
+elements.downloadReportBtn?.addEventListener("click", () => {
+  const fallbackReport = elements.output?.dataset?.markdown || elements.output?.textContent || "";
+  const report = currentRun ? getReportMarkdown(currentRun) : fallbackReport;
+  if (!isReportDownloadable(report)) return;
+  downloadReport({ run: currentRun, report });
+});
+if (typeof window !== "undefined") {
+  window.renderRun = renderRun;
+  window.downloadReport = downloadReport;
+}
 $("#close-detail").addEventListener("click", () => elements.dialog.close());
 elements.dialog.addEventListener("click", (event) => {
   if (event.target === elements.dialog) elements.dialog.close();
@@ -125,6 +143,11 @@ function showResultView({ push = false } = {}) {
 
 function showSearchView() {
   activeController?.abort();
+  currentRun = undefined;
+  if (elements.downloadReportBtn) {
+    elements.downloadReportBtn.disabled = true;
+    elements.downloadReportBtn.classList.add("hidden");
+  }
   elements.resultView.classList.add("hidden");
   elements.searchView.classList.remove("hidden");
   elements.activity.classList.add("hidden");
@@ -174,6 +197,7 @@ function clearError() {
 }
 
 function renderRun(run) {
+  showResultView();
   elements.activity.classList.add("hidden");
   elements.resultView.classList.remove("has-live-evidence", "is-running");
   elements.reportSection.classList.remove("hidden");
@@ -204,13 +228,26 @@ function renderRun(run) {
       }
     });
   }
+  currentRun = run;
   renderTable(items);
-  renderMarkdown(elements.output, run.report || run.finalSocaiOutput || "socai completed without a report.");
+  const reportMarkdown = getReportMarkdown(run);
+  if (elements.output) elements.output.dataset.markdown = reportMarkdown;
+  const canDownload = isReportDownloadable(reportMarkdown);
+  if (elements.downloadReportBtn) {
+    elements.downloadReportBtn.disabled = !canDownload;
+    elements.downloadReportBtn.classList.toggle("hidden", !canDownload);
+  }
+  renderMarkdown(elements.output, reportMarkdown || "socai completed without a report.");
   revealReport(elements.output);
   elements.result.classList.remove("hidden");
 }
 
 function resetLiveWorkspace() {
+  currentRun = undefined;
+  if (elements.downloadReportBtn) {
+    elements.downloadReportBtn.disabled = true;
+    elements.downloadReportBtn.classList.add("hidden");
+  }
   $("#run-status").textContent = "";
   $("#action-list").replaceChildren();
   elements.resultView.classList.remove("has-live-evidence");
