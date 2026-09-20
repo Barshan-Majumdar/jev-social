@@ -1,6 +1,10 @@
 ---
 name: jev-social
 description: Run browser-grounded, read-only social research through Jev Social when a user wants posts, profiles, comments, video evidence, or a source-linked report from Instagram, TikTok, or LinkedIn and the local socai CLI reports support for that platform. Do not use for publishing, engagement actions, or general web research.
+metadata:
+  author: socai-io
+  category: Research
+  tags: social-media research instagram tiktok linkedin browser-automation
 ---
 
 # Jev Social
