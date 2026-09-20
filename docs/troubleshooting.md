@@ -90,7 +90,22 @@ if ($env:OPENROUTER_API_KEY) { "Key is set" } else { "Key is missing" }
 
 ### LinkedIn
 - **Issue**: LinkedIn redirects unauthenticated searches for people, content, or companies to `linkedin.com/authwall`.
-- **Resolution**: Sign into LinkedIn in your primary Chrome browser. Once your session is active, Jev Social can query people and content through that session:
+- **CLI Capability Prerequisite**: The fallback `socai` binary resolved by the repository (v0.5.6) does not include the `linkedin` subcommand; running `socai linkedin` on this build outputs `error: unrecognized subcommand 'linkedin'`. Direct LinkedIn commands require a LinkedIn-capable build (or setting `SOCAI_BIN` to a build with the subcommand enabled).
+- **Supported Diagnostics**:
+  - Check whether your active `socai` binary exposes the `linkedin` subcommand:
+    ```bash
+    socai linkedin --help
+    ```
+  - Verify platform capability through the local Jev Social status endpoint:
+    ```bash
+    curl -s http://127.0.0.1:8766/api/status
+    ```
+    Confirm that `capabilities.linkedin` evaluates to `true`.
+- **Resolution**: Sign into LinkedIn in your primary Chrome browser window. Once your authenticated session is active and a LinkedIn-capable build is available, run research through Jev Social:
+  ```bash
+  npm start -- search "find AI product managers in San Francisco on LinkedIn" --platform auto --limit 4
+  ```
+  On builds with the `linkedin` subcommand enabled, direct CLI calls are supported:
   ```bash
   socai linkedin search "AI product managers" --num 4 --pretty
   ```
