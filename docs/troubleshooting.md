@@ -29,17 +29,33 @@ Jev Social directs your Chrome browser through the [socai](https://github.com/so
 >   safe_purge_runs() {
 >     local target="$1"
 >     [ -n "$target" ] || return 0
->     [ -e "$target" ] || return 0
 >
->     # Reject symbolic links
->     if [ -L "$target" ]; then
+>     # Normalize path: strip trailing slashes and '/.'
+>     local normalized="$target"
+>     while :; do
+>       case "$normalized" in
+>         */.) normalized="${normalized%/.}" ;;
+>         *//) normalized="${normalized%/}" ;;
+>         */)  normalized="${normalized%/}" ;;
+>         *)   break ;;
+>       esac
+>     done
+>
+>     # Refuse broad or empty paths resulting from root normalization (e.g. '/', '/.')
+>     if [ -z "$normalized" ] || [ "$normalized" = "/" ] || [ "$normalized" = "." ] || [ "$normalized" = ".." ]; then
+>       echo "Refusing broad, empty, or relative root path: $target" >&2
+>       return 1
+>     fi
+>
+>     # Reject symbolic links (tested on normalized path to catch trailing '/' or '/.' aliases)
+>     if [ -L "$normalized" ]; then
 >       echo "Refusing to purge symbolic link: $target" >&2
 >       return 1
 >     fi
->     [ -d "$target" ] || return 0
+>     [ -d "$normalized" ] || return 0
 >
 >     local resolved
->     resolved="$(cd "$target" 2>/dev/null && pwd -P)" || return 0
+>     resolved="$(cd "$normalized" 2>/dev/null && pwd -P)" || return 0
 >
 >     # Refuse empty path, filesystem root, home directory, or current working directory
 >     if [ -z "$resolved" ] || [ "$resolved" = "/" ] || [ "$resolved" = "$HOME" ] || [ "$resolved" = "$(pwd -P)" ]; then
