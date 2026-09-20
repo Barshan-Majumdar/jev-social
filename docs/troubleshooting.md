@@ -8,17 +8,40 @@ Jev Social directs your Chrome browser through the [socai](https://github.com/so
 >   1. **Jev Social Runs**: Finalized runs persist full evidence, captured cards, and raw `socaiOutputs` stdout text to `${JEV_SOCIAL_HOME:-~/.jev-social}/runs/<id>.json`.
 >   2. **`socai` Command Artifacts**: The underlying CLI writes tool inputs, outputs, downloaded media, and execution artifacts following the precedence: `SOCAI_RUNS_DIR` environment override $\rightarrow$ configured `runs.dir` (`socai config get runs.dir`) $\rightarrow$ default `~/.socai/runs/`.
 > - **Locating & Purging Effective Stores**:
->   Always resolve, canonicalize, and verify targets before purging to avoid deleting unintended directories:
+>   To inspect your active artifact storage locations without modifying files:
 >   ```bash
->   # macOS / Linux
+>   # macOS / Linux (inspect paths)
+>   echo "Jev Social runs: ${JEV_SOCIAL_HOME:-$HOME/.jev-social}/runs"
+>   SOCAI_CONFIG_RUNS="$(/path/from-api-status config get runs.dir 2>/dev/null)"
+>   echo "socai artifacts: ${SOCAI_RUNS_DIR:-${SOCAI_CONFIG_RUNS:-$HOME/.socai/runs}}"
+>   ```
+>   ```powershell
+>   # Windows PowerShell (inspect paths)
+>   $jevDir = if ($env:JEV_SOCIAL_HOME) { Join-Path $env:JEV_SOCIAL_HOME "runs" } else { "$HOME\.jev-social\runs" }
+>   $configuredRuns = (& /path/from-api-status config get runs.dir 2>$null)
+>   $socaiDir = if ($env:SOCAI_RUNS_DIR) { $env:SOCAI_RUNS_DIR } elseif ($configuredRuns) { $configuredRuns } else { "$HOME\.socai\runs" }
+>   Write-Host "Jev Social runs: $jevDir"
+>   Write-Host "socai artifacts: $socaiDir"
+>   ```
+>   To purge artifacts, use the guarded helpers below. They canonicalize target directories, reject symbolic links and reparse points, refuse filesystem/drive roots, the home directory, and the current working directory, refuse non-interactive execution, display the canonical path, and require explicit interactive approval (`yes`) before deleting descendants:
+>   ```bash
+>   # macOS / Linux (guarded interactive purge)
 >   safe_purge_runs() {
 >     local target="$1"
 >     [ -n "$target" ] || return 0
+>     [ -e "$target" ] || return 0
+>
+>     # Reject symbolic links
+>     if [ -L "$target" ]; then
+>       echo "Refusing to purge symbolic link: $target" >&2
+>       return 1
+>     fi
 >     [ -d "$target" ] || return 0
+>
 >     local resolved
 >     resolved="$(cd "$target" 2>/dev/null && pwd -P)" || return 0
 >
->     # Refuse empty path, filesystem/drive root, home directory, or current working directory
+>     # Refuse empty path, filesystem root, home directory, or current working directory
 >     if [ -z "$resolved" ] || [ "$resolved" = "/" ] || [ "$resolved" = "$HOME" ] || [ "$resolved" = "$(pwd -P)" ]; then
 >       echo "Refusing to purge broad or root path: $resolved" >&2
 >       return 1
@@ -29,8 +52,23 @@ Jev Social directs your Chrome browser through the [socai](https://github.com/so
 >       return 1
 >     fi
 >
->     echo "Target directory confirmed for purge: $resolved"
+>     # Refuse non-interactive input
+>     if [ ! -t 0 ] || [ ! -r /dev/tty ]; then
+>       echo "Refusing to purge non-interactively (interactive confirmation required)" >&2
+>       return 1
+>     fi
+>
+>     # Display canonical target and require explicit user approval
+>     echo "Canonical target: $resolved"
+>     local confirmation
+>     read -r -p "Type 'yes' to permanently delete all contents inside $resolved: " confirmation < /dev/tty
+>     if [ "$confirmation" != "yes" ]; then
+>       echo "Purge cancelled."
+>       return 1
+>     fi
+>
 >     find "$resolved" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+>     echo "Purged descendants of: $resolved"
 >   }
 >
 >   # 1. Purge Jev Social runs (respecting JEV_SOCIAL_HOME):
@@ -42,12 +80,18 @@ Jev Social directs your Chrome browser through the [socai](https://github.com/so
 >   safe_purge_runs "$SOCAI_EFFECTIVE_RUNS"
 >   ```
 >   ```powershell
->   # Windows PowerShell
+>   # Windows PowerShell (guarded interactive purge)
 >   function Safe-Purge-Runs($targetPath) {
 >       if (-not $targetPath -or -not (Test-Path -LiteralPath $targetPath -PathType Container)) { return }
 >       $item = Get-Item -LiteralPath $targetPath -Force
->       $rawPath = if ($item.Target -and $item.Target.Count -gt 0) { $item.Target[0] } else { $item.FullName }
->       $resolved = (Resolve-Path -LiteralPath $rawPath).Path
+>
+>       # Reject symbolic links, junctions, and reparse points
+>       if ($item.Attributes.HasFlag([System.IO.FileAttributes]::ReparsePoint) -or $item.LinkType) {
+>           Write-Warning "Refusing to purge symbolic link or reparse point: $targetPath"
+>           return
+>       }
+>
+>       $resolved = (Resolve-Path -LiteralPath $item.FullName).Path
 >       $driveRoot = [System.IO.Path]::GetPathRoot($resolved)
 >
 >       # Refuse filesystem/drive roots, home directory, or current working directory
@@ -61,8 +105,22 @@ Jev Social directs your Chrome browser through the [socai](https://github.com/so
 >           return
 >       }
 >
->       Write-Host "Target directory confirmed for purge: $resolved"
+>       # Refuse non-interactive input
+>       if ([System.Console]::IsInputRedirected) {
+>           Write-Warning "Refusing to purge non-interactively (interactive confirmation required)"
+>           return
+>       }
+>
+>       # Display canonical target and require explicit user approval
+>       Write-Host "Canonical target: $resolved"
+>       $confirmation = Read-Host "Type 'yes' to permanently delete all contents inside $resolved"
+>       if ($confirmation -ne "yes") {
+>           Write-Host "Purge cancelled."
+>           return
+>       }
+>
 >       Get-ChildItem -LiteralPath $resolved -Force | Remove-Item -Recurse -Force
+>       Write-Host "Purged descendants of: $resolved"
 >   }
 >
 >   # 1. Purge Jev Social runs (respecting JEV_SOCIAL_HOME):
