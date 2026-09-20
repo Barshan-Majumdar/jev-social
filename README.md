@@ -79,8 +79,8 @@ Node 20+, an OpenRouter key with Jev access, and a current [socai](https://githu
 Fastest path — no repository clone required. Onboarding prompts for the key and offers to install the official socai CLI when it is missing:
 
 ```bash
-npx --yes github:socai-io/jev-social onboard
-npx --yes github:socai-io/jev-social
+npx github:socai-io/jev-social#v0.1.3 onboard
+npx github:socai-io/jev-social#v0.1.3
 ```
 
 To let Codex, Claude Code, Cursor, or another compatible agent invoke the same browser-grounded workflow as a skill:
