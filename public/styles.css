@@ -62,10 +62,24 @@ h1 em { color: transparent; font-style: normal; -webkit-text-stroke: 1.5px var(-
 .button.primary { margin-left: auto; color: #fff; background: var(--ink); }
 .button.primary:hover { color: var(--ink); background: var(--pink); }
 .button:disabled { opacity: .55; cursor: wait; }
+.prompt-examples { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.prompt-examples-label { color: var(--muted); font: 700 9px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.prompt-examples-list { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.prompt-example-btn { display: inline-flex; align-items: center; gap: 7px; min-height: 28px; padding: 4px 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); font: 500 12px/1.3 var(--sans); cursor: pointer; transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease; }
+.prompt-example-btn:hover { border-color: var(--ink); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--ink); }
+.prompt-example-btn:active { transform: translate(0, 0); box-shadow: 1px 1px 0 var(--ink); }
+.prompt-example-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; box-shadow: 0 0 0 3px var(--pink); }
+.prompt-example-btn .prompt-platform { color: var(--pink); font: 700 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.prompt-example-btn .prompt-text { color: var(--ink); }
+
 .pipeline { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 21px; color: #6f7480; font: 8px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
 .pipeline i { color: var(--pink); font-style: normal; }
 
-.error-box { position: fixed; z-index: 50; top: 76px; right: 14px; width: min(560px, calc(100% - 28px)); padding: 14px 16px; border: 1px solid var(--ink); background: #fff; box-shadow: 6px 6px 0 var(--pink); white-space: pre-wrap; font: 11px/1.6 var(--mono); }
+.error-box { position: fixed; z-index: 999; bottom: 24px; right: 24px; top: auto; width: min(480px, calc(100% - 32px)); padding: 13px 38px 13px 16px; border: 1px solid var(--ink); background: #fff; box-shadow: 6px 6px 0 var(--pink); font: 11px/1.6 var(--mono); }
+.error-message { display: block; white-space: pre-wrap; word-break: break-word; color: var(--ink); }
+.error-close { position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; display: grid; place-items: center; border: 0; background: transparent; color: #717682; font-size: 18px; line-height: 1; cursor: pointer; padding: 0; border-radius: 4px; transition: color .12s ease, transform .12s ease; }
+.error-close:hover { color: var(--pink); transform: scale(1.15); }
+.error-close:focus-visible { outline: 2px solid var(--pink); outline-offset: 1px; }
 .result-view { min-height: 0; display: flex; flex-direction: column; background: #fff; }
 .result-toolbar { flex: 0 0 76px; display: grid; grid-template-columns: 180px 1fr 180px; align-items: center; gap: 20px; padding: 0 22px; border-bottom: 1px solid var(--ink); background: var(--ice); }
 .result-heading { min-width: 0; text-align: center; }
@@ -176,6 +190,8 @@ tr:last-child td { border-bottom: 0; }
   .search-view { place-items: start center; padding: 42px 14px; }
   h1 { font-size: 55px; }
   .composer-controls { align-items: stretch; flex-wrap: wrap; }
+  .prompt-examples { flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 12px; }
+  .prompt-examples-list { width: 100%; gap: 6px; }
   .readiness { order: 3; width: 100%; }
   .button.primary { flex: 1; }
   .pipeline { flex-wrap: wrap; }
@@ -185,10 +201,12 @@ tr:last-child td { border-bottom: 0; }
   .detail-content { grid-template-columns: 1fr; }
   .detail-content .detail-media { min-height: 360px; }
   .report-section .section-head { flex-wrap: wrap; gap: 12px; }
+  .error-box { bottom: 12px; right: 12px; width: calc(100% - 24px); }
 }
 @media (max-width: 500px) {
   .top-actions a { padding: 0 9px; font-size: 8px; }
   .result-heading .eyebrow { display: none; }
+  .prompt-example-btn { font-size: 11px; padding: 4px 8px; }
   .time-readout strong { font-size: 15px; }
   .cards { grid-template-columns: 1fr; }
   .report-section .section-head { flex-direction: column; align-items: stretch; gap: 10px; }

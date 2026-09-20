@@ -19,6 +19,7 @@ const MEDIA_TTL_MS = 60 * 60_000;
 const STATIC_FILES = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/app.js": ["app.js", "text/javascript; charset=utf-8"],
+  "/prompts.js": ["prompts.js", "text/javascript; charset=utf-8"],
   "/styles.css": ["styles.css", "text/css; charset=utf-8"],
   "/report-download.js": ["report-download.js", "text/javascript; charset=utf-8"],
   "/platforms/instagram.png": ["platforms/instagram.png", "image/png"],
