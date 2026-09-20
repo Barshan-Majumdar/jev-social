@@ -20,10 +20,11 @@ Jev Social intentionally acts within your real, local browser environment:
 
 | State | What Happened | What You See | How to Resolve |
 | --- | --- | --- | --- |
-| **Missing `socai` executable** | The `socai` CLI is not installed or not discoverable at the resolved binary path. | Status indicator displays `socai unavailable`, or terminal reports `spawn ENOENT` / command not found. | On macOS and Windows, run `npm start -- onboard` (or `npx jev-social onboard`). On Linux, install from source via Cargo (`cargo install --git https://github.com/socai-io/socai.git`) and set `SOCAI_BIN`. |
+| **Missing `socai` executable** | The `socai` CLI is not installed or not discoverable at the resolved binary path. | Status indicator displays `socai unavailable`, or terminal reports `spawn ENOENT` / command not found. | On macOS and Windows, run `npx --yes github:socai-io/jev-social onboard` (or `npm start -- onboard`). On Linux, install the CLI package from source via Cargo (`cargo install --git https://github.com/socai-io/socai.git socai-cli`) and set `SOCAI_BIN`. |
 | **Browser connection failure** | `socai` cannot connect to Chrome or its DevTools protocol (CDP) endpoint. | Error indicates connection refusal (e.g. `ECONNREFUSED 127.0.0.1:9222`), socket error, or browser launch timeout. | Follow your active connection mode below. Ensure the target Chrome instance is running with remote debugging enabled and accept any remote-debugging permission prompts. Avoid blanket process-killing commands. |
 | **Login-required / challenge gate** | The platform blocked unauthenticated access with a login modal, redirect (e.g. `authwall`), or CAPTCHA. | Status displays a partial result notice with the specific gate reason (for example, `Partial results · The platform requires attention: login_required`). | Open the platform in the specific Chrome session or profile selected by `socai`, complete authentication or challenges, and verify browsing before re-running. |
-| **Valid empty result** | The platform loaded successfully and the search executed cleanly, but returned 0 matching records. | Evidence cards, table, and heading remain hidden. The run may finalize as `partial` (e.g. `Partial results · Jev stopped without usable evidence.`), `step_limit`, or `decision_failed`. | The search executed cleanly without matching records. Broaden or rephrase your query. |
+| **Valid empty result** | The platform loaded successfully and the search executed cleanly, but returned 0 matching records. | Evidence cards, table, and heading remain hidden. The run finalizes as `partial` (`Partial results · Jev stopped without usable evidence.`) or `step_limit` if max steps were reached. | The search executed cleanly without matching records on the platform. Broaden or rephrase your search query. |
+| **Model decision failure** | Jev encountered an error communicating with the model (e.g. OpenRouter timeout, API rate limit, or invalid response) mid-run. | Status displays `Partial results · <error message>` with status `decision_failed`. | Check network connectivity to OpenRouter, ensure your API key and quota are valid, or retry the request. |
 
 ---
 
@@ -55,7 +56,7 @@ curl -s http://127.0.0.1:8766/api/status | node -e '
 '
 ```
 
-Expected output confirms configuration without exposing credentials or local filesystem paths:
+Expected output confirms configuration without exposing credentials or local filesystem paths (`socai.capabilities.linkedin` is capability-dependent and evaluates to `true` or `false` depending on your active build, such as `false` on `v0.5.6`):
 
 ```json
 {
@@ -66,7 +67,7 @@ Expected output confirms configuration without exposing credentials or local fil
     "capabilities": {
       "instagram": true,
       "tiktok": true,
-      "linkedin": true
+      "linkedin": false
     }
   }
 }
@@ -97,16 +98,18 @@ Because resolution is not pinned to a single binary and may differ from what is 
 
 - **macOS & Windows**: Run automated onboarding to download and install the official release:
   ```bash
+  npx --yes github:socai-io/jev-social onboard
+  # or from a repository checkout:
   npm start -- onboard
   ```
-- **Linux & Source Builds**: The prebuilt installer supports macOS and Windows. On Linux, install via Cargo or build from source:
+- **Linux & Source Builds**: Prebuilt installer downloads currently support macOS and Windows. On Linux, `socai` is a virtual Cargo workspace; install the `socai-cli` package via Cargo or build it from source:
   ```bash
   # Install via Cargo:
-  cargo install --git https://github.com/socai-io/socai.git
+  cargo install --git https://github.com/socai-io/socai.git socai-cli
 
   # Or build from source:
   git clone https://github.com/socai-io/socai.git
-  cd socai && cargo build --release
+  cd socai && cargo build --release -p socai-cli
   export SOCAI_BIN="$(pwd)/target/release/socai"
   ```
 
@@ -120,16 +123,22 @@ Because resolution is not pinned to a single binary and may differ from what is 
 # Select profile connection mode: existing, managed, or auto
 /path/from-api-status config set chrome.profile existing
 
-# Select a custom Chrome profile / user data directory:
+# Select a custom Chrome profile / user data directory (applies to managed and auto modes):
 /path/from-api-status config set chrome.profile_dir /path/to/profile/dir
+
+# Stop the running daemon so new chrome.* settings take effect:
+/path/from-api-status stop
 
 # Inspect active configuration:
 /path/from-api-status config get
 ```
 
-- **`existing`**: `socai` attaches to a running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`).
-- **`managed`**: `socai` starts and controls a dedicated Chrome process.
-- **`auto`**: `socai` attempts to detect an existing Chrome session or falls back to managed launch.
+- **`existing`**: `socai` attaches to a running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`). `chrome.profile_dir` does not apply to `existing` mode since it connects to the already-running browser.
+- **`managed`**: `socai` starts and controls a dedicated Chrome process using `chrome.profile_dir` (or a managed temporary profile).
+- **`auto`**: `socai` tries managed launch first, then falls back to connecting to an existing Chrome instance (`core/src/cdp/lifecycle.rs:403-411`).
+
+> [!TIP]
+> If changing `chrome.*` configuration while the background `socai` daemon or browser is running, run `/path/from-api-status stop` (or `socai stop`) so the daemon reloads settings on the next run.
 
 Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCAI_CHROME_PROFILE`, `SOCAI_CHROME_USER_DATA_DIR`, and `SOCAI_CHROME_EXECUTABLE`) to child processes during runtime discovery.
 
@@ -162,7 +171,7 @@ Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCA
     ```bash
     curl -s http://127.0.0.1:8766/api/status
     ```
-    Confirm that `socai.capabilities.linkedin` evaluates to `true`.
+    Confirm that `socai.capabilities.linkedin` evaluates to `true` (it evaluates to `false` on builds without the LinkedIn subcommand enabled).
   - Test subcommand availability directly on the resolved executable:
     ```bash
     /path/from-api-status linkedin --help
@@ -195,5 +204,5 @@ When a run naturally halts at a barrier—such as a login or challenge wall (`st
 ### Manual Cancellation
 
 When a run is manually cancelled (e.g. by navigating back to search, clicking back, or closing the stream connection):
-- **Immediate Halt**: The abort signal immediately stops active browser work and child processes.
+- **Shutdown Behavior**: The abort signal requests process shutdown immediately (sending SIGTERM, with up to a one-second grace period before SIGKILL). Detached background browser sessions or running `socai` daemons may remain active.
 - **Observable Guarantee**: Cancellation stops active work and may end without a newly rendered run view or downloadable report in the UI. While an abort during the decision loop bypasses report compilation and run persistence, a disconnect during or after persistence can leave a saved run on disk while suppressing the final UI event.
