@@ -4,16 +4,29 @@ Jev Social directs your Chrome browser through the [socai](https://github.com/so
 
 > [!WARNING]
 > **Data Retention & Privacy Notice**:
-> - **Archived Runs**: Finalized runs persist full evidence, captured cards, and raw `socaiOutputs` stdout text to disk at `~/.jev-social/runs/<id>.json` (or `$JEV_SOCIAL_HOME/runs/`).
-> - **Retention & Removal**: You can review archived JSON files or purge them at any time:
+> - **Archived Runs & Artifacts**: Two distinct storage locations persist data that may survive cancellation or process termination:
+>   1. **Jev Social Runs**: Finalized runs persist full evidence, captured cards, and raw `socaiOutputs` stdout text to `${JEV_SOCIAL_HOME:-~/.jev-social}/runs/<id>.json`.
+>   2. **`socai` Command Artifacts**: The underlying CLI writes tool inputs, outputs, downloaded media, and execution artifacts under `SOCAI_RUNS_DIR`, configured `runs.dir` (`socai config get runs.dir`), or the default fallback `~/.socai/runs/`.
+> - **Locating & Purging Effective Stores**:
 >   ```bash
 >   # macOS / Linux
->   rm -rf ~/.jev-social/runs/*
+>   # Purge Jev Social runs (respecting JEV_SOCIAL_HOME):
+>   rm -rf "${JEV_SOCIAL_HOME:-$HOME/.jev-social}/runs"/*
 >
->   # Windows PowerShell
->   Remove-Item -Recurse -Force ~/.jev-social/runs/*
+>   # Purge socai command artifacts (respecting SOCAI_RUNS_DIR or ~/.socai/runs):
+>   rm -rf "${SOCAI_RUNS_DIR:-$HOME/.socai/runs}"/*
 >   ```
-> - **Review Before Sharing**: Exported `report.md` files and run JSON archives preserve access-restricted posts, private account connections, author names, bio/experience data, comments, and direct URLs from your active session. Always review and redact sensitive data before sharing reports publicly.
+>   ```powershell
+>   # Windows PowerShell
+>   # Purge Jev Social runs:
+>   $jevDir = if ($env:JEV_SOCIAL_HOME) { "$env:JEV_SOCIAL_HOME\runs" } else { "$HOME\.jev-social\runs" }
+>   if (Test-Path $jevDir) { Remove-Item -Recurse -Force "$jevDir\*" }
+>
+>   # Purge socai command artifacts:
+>   $socaiDir = if ($env:SOCAI_RUNS_DIR) { "$env:SOCAI_RUNS_DIR" } else { "$HOME\.socai\runs" }
+>   if (Test-Path $socaiDir) { Remove-Item -Recurse -Force "$socaiDir\*" }
+>   ```
+> - **Review Before Sharing**: Exported `report.md` files and raw run JSON archives preserve access-restricted posts, private account connections, author names, bio/experience data, comments, and direct URLs from your active session. Always review and redact sensitive data before sharing reports or diagnostic files publicly.
 
 ---
 
@@ -24,7 +37,7 @@ By default (using `existing` or `managed` Chrome modes without external endpoint
 - **No credential injection**: It does not store passwords, scrape private cookies, or use rotating proxy pools.
 - **Honest failure reporting**: When a site gates content behind a login wall or rate limit, Jev Social halts visibly and returns partial results rather than inventing data or claiming false success.
 
-*(Note: If `socai` is configured with `chrome.profile remote` or pointed to an explicit hosted `SOCAI_CDP_URL` / `SOCAI_CDP_WS` endpoint, browser automation runs on that designated remote host, while the same honest boundary and non-bypass rules still apply.)*
+*(Note on non-local execution: Users can explicitly provide external debugging endpoints via `SOCAI_CDP_URL` / `SOCAI_CDP_WS`. Additionally, `socai` supports a hosted `remote` mode (`chrome.profile remote`), which requires socai Pro and provisions ephemeral cloud browser sessions through `socai-server`. Hosted remote sessions run without interactive desktop access, so users cannot solve CAPTCHAs or login gates in `remote` mode; authoritative socai guidance is to retry later or switch to local `existing` or `managed` mode to authenticate interactively.)*
 
 ---
 
@@ -34,7 +47,7 @@ By default (using `existing` or `managed` Chrome modes without external endpoint
 | --- | --- | --- | --- |
 | **Missing `socai` executable** | The `socai` CLI is not installed or not discoverable at the resolved binary path. | Status indicator displays `socai unavailable`, or terminal reports `spawn ENOENT` / command not found. | On macOS and Windows, run `npx --yes github:socai-io/jev-social onboard` (or `npm start -- onboard`). On Linux, install the CLI package from source via Cargo (`cargo install --git https://github.com/socai-io/socai.git socai-cli`) and set `SOCAI_BIN`. |
 | **Browser connection failure** | `socai` cannot connect to Chrome or its DevTools protocol (CDP) endpoint. | Error indicates connection refusal (e.g. `ECONNREFUSED 127.0.0.1:9222`), socket error, or browser launch timeout. | Follow your active connection mode below. Ensure the target Chrome instance is running with remote debugging enabled and accept any remote-debugging permission prompts. Avoid blanket process-killing commands. |
-| **Login-required / challenge gate** | The platform blocked unauthenticated access with a login modal, redirect (e.g. `authwall`), or CAPTCHA. | Status displays a partial result notice with the specific gate reason (for example, `Partial results · The platform requires attention: login_required`). | Open the platform in the specific Chrome session or profile selected by `socai`, complete authentication or challenges, and verify browsing before re-running. |
+| **Login-required / challenge gate** | The platform blocked unauthenticated access with a login modal, redirect (e.g. `authwall`), or CAPTCHA. | Status displays a partial result notice with the specific gate reason (for example, `Partial results · The platform requires attention: login_required`). | Open the platform in the specific user-accessible Chrome session or profile selected by `socai` (`existing` or `managed` mode), complete authentication or challenges, and verify browsing before re-running. (If using hosted `remote` mode, switch to `existing` or `managed` mode to authenticate interactively.) |
 | **Valid empty result** | The platform loaded successfully and the search executed cleanly, but returned 0 matching records. | Evidence cards, table, and heading remain hidden. The run finalizes as `partial` (`Partial results · Jev stopped without usable evidence.`) or `step_limit` if max steps were reached. | The search executed cleanly without matching records on the platform. Broaden or rephrase your search query. |
 | **Early decision or classification failure** | Jev encountered an error during classification or the very first action decision before any operations ran. | Stream emits an error event immediately without saving a run or generating a report. | Ensure your query is a supported read-only social research goal, specify `--platform` explicitly, or check your OpenRouter key and network connection. |
 | **Mid-run decision failure (`decision_failed`)** | A model decision call failed after one or more actions had already executed. | Status displays `Partial results · <error message>` with status `decision_failed`; collected evidence prior to the failure is preserved. | Check OpenRouter API connectivity, ensure model quota is available, or retry the request. |
@@ -132,10 +145,10 @@ Because resolution is not pinned to a single binary and may differ from what is 
 
 ## Browser Connection & Session Modes
 
-`socai` manages its Chrome connection mode and profile directory through its configuration commands. To configure which browser session `socai` uses:
+`socai` manages its Chrome connection mode and profile directory through configuration commands. To configure which browser session `socai` uses:
 
 ```bash
-# Select profile connection mode: existing, managed, auto, or remote
+# Select profile connection mode: existing, managed, auto, or remote (requires Pro)
 /path/from-api-status config set chrome.profile existing
 
 # Select a custom Chrome profile / user data directory (applies to managed and auto modes):
@@ -148,11 +161,13 @@ Because resolution is not pinned to a single binary and may differ from what is 
 /path/from-api-status config get
 ```
 
-- **Precedence**: If an explicit `SOCAI_CDP_WS` or `SOCAI_CDP_URL` environment variable is set, it takes precedence first over configured profile modes.
-- **`existing`**: `socai` attaches to an already-running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`). `chrome.profile_dir` does not apply to `existing` mode since it connects to the active browser.
+### Connection Modes & Precedence in `socai v0.6.0`
+
+- **CDP Precedence**: Explicit `SOCAI_CDP_WS` or `SOCAI_CDP_URL` environment variables override connection discovery **only for non-managed modes (`existing` or `auto`)**. In `managed` mode (`chrome.profile managed`), `socai` deliberately ignores external CDP endpoints and launches or reuses its own managed profile to prevent unintended browser automation.
+- **`existing`**: `socai` attaches to an already-running Chrome instance (e.g. started with `--remote-debugging-port=9222` or reachable at `SOCAI_CDP_URL`). `chrome.profile_dir` does not apply to `existing` mode since it connects directly to the active browser process.
 - **`managed`**: `socai` starts and controls a dedicated Chrome process. By default, it uses the persistent profile directory at `~/.socai/chrome-profile` (or `chrome.profile_dir` if configured), preserving login credentials and cookies across runs.
 - **`auto`**: `socai` tries managed launch first, then falls back to connecting to an existing Chrome instance (`core/src/cdp/lifecycle.rs:403-411`).
-- **`remote`**: `socai` connects to a remote browser endpoint specified in configuration.
+- **`remote` (Hosted)**: A hosted cloud browser mode that requires **socai Pro** and provisions temporary remote sessions via `socai-server` (distinct from user-provided `SOCAI_CDP_*` endpoints). Because hosted remote containers lack local GUI interaction, users cannot interactively solve login gates or CAPTCHAs in `remote` mode; authoritative `socai` guidance is to retry later or switch to `existing` or `managed` mode to authenticate.
 
 > [!TIP]
 > If changing `chrome.*` configuration while the background `socai` daemon or browser is running, run `/path/from-api-status stop` (or `socai stop`) so the daemon reloads settings on the next run.
@@ -161,7 +176,7 @@ Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCA
 
 ### Working with Browser Sessions Safely
 
-1. **Authenticate the Active Profile**: When logging into social platforms or solving challenges, ensure you are interacting with the **exact Chrome session and profile directory configured in `socai`** (`chrome.profile` and `chrome.profile_dir`). Logging into an everyday, unlinked browser profile will not share cookies or sessions with `socai`.
+1. **Authenticate User-Accessible Profiles**: When logging into social platforms or solving challenges, ensure you are interacting with a **user-accessible Chrome session and profile directory configured in `socai`** (`chrome.profile` set to `existing` or `managed`, with `chrome.profile_dir`). Logging into an everyday, unlinked browser profile will not share cookies or sessions with `socai`. If using hosted `remote` mode, switch to `existing` or `managed` mode on your local machine to authenticate interactively.
 2. **Existing-Profile Remote Debugging Permission**: If attaching `socai` to an existing Chrome profile via remote debugging (e.g. `--remote-debugging-port=9222`), Chrome may display an infobar or confirmation prompt requesting permission for remote debugging/automation. Confirm that this permission is granted.
 3. **Avoid Blanket Process Termination**: Do not use blanket commands such as `pkill chrome` or `killall chrome`. Arbitrarily closing processes can destroy the exact running Chrome session, debugging port, or authenticated state that `socai` is configured to reuse.
 
@@ -171,11 +186,11 @@ Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCA
 
 ### Instagram
 - **Issue**: Instagram frequently prompts with a login modal or redirects unauthenticated queries to `/accounts/login/`.
-- **Resolution**: Open `https://www.instagram.com` within the Chrome session/profile selected by `socai`, log into your account, and verify you can browse posts without a login modal. Then re-run Jev Social.
+- **Resolution**: Open `https://www.instagram.com` within a user-accessible Chrome session/profile selected by `socai` (`existing` or `managed` mode; switch to `existing` or `managed` if on hosted `remote` mode), log into your account, and verify you can browse posts without a login modal. Then re-run Jev Social.
 
 ### TikTok
 - **Issue**: TikTok may present an interactive puzzle/slider challenge or restrict video detail and comments for unauthenticated sessions.
-- **Resolution**: Complete any active puzzle verification within the Chrome session/profile selected by `socai`. Test direct platform access using the resolved `socai` executable:
+- **Resolution**: Complete any active puzzle verification within a user-accessible Chrome session/profile selected by `socai` (`existing` or `managed` mode). Test direct platform access using the resolved `socai` executable:
   ```bash
   /path/from-api-status tiktok search "wearable AI" --num 4 --pretty
   ```
@@ -193,7 +208,7 @@ Jev Social forwards connection overrides (`SOCAI_CDP_URL`, `SOCAI_CDP_WS`, `SOCA
     ```bash
     /path/from-api-status linkedin --help
     ```
-- **Resolution**: Sign into LinkedIn within the Chrome session/profile selected by `socai`. Once your authenticated session is active and `socai.capabilities.linkedin` is `true`, run research through Jev Social:
+- **Resolution**: Sign into LinkedIn within a user-accessible Chrome session/profile selected by `socai` (`existing` or `managed` mode; switch to `existing` or `managed` if on hosted `remote` mode). Once your authenticated session is active and `socai.capabilities.linkedin` is `true`, run research through Jev Social:
   ```bash
   npm start -- search "find AI product managers in San Francisco on LinkedIn" --platform auto --limit 4
   ```
