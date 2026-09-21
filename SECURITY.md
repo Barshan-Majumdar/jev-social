@@ -38,6 +38,6 @@ Jev Social runs locally, but it is not an offline application.
 
 ### External effects and recovery
 
-- Supported platform operations are read-only, but they still make network requests and write local run files. A TikTok detail action may include `--download-media`; there is currently no separate confirmation immediately before that local download.
+- Supported platform operations do not change remote social state, but they still make network requests and write local run files. Jev Social exposes a TikTok action containing `--download-media` only when the user's goal explicitly asks to download, save, archive, capture, record, or keep an offline copy of media. That authorization is recorded as `downloadMedia: true` on the selected action in run history; there is no second confirmation after the explicit request.
 - Jev and platform requests can incur provider or network costs. `--max-steps` bounds decision-loop work, and cancellation terminates the active socai process tree.
 - Access gates, low-confidence decisions, failed operations, and step exhaustion produce partial or failed runs instead of changing remote social state. Recovery consists of stopping the run, reviewing the saved evidence, and removing only the unwanted local artifacts described above.

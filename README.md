@@ -9,7 +9,7 @@
 [![release](https://img.shields.io/github/v/release/socai-io/jev-social?style=flat-square&label=release)](https://github.com/socai-io/jev-social/releases/latest)
 [![license](https://img.shields.io/github/license/socai-io/jev-social?style=flat-square&label=license)](LICENSE)
 
-Jev chooses each next operation: search, open a particular post or profile, read comments, download a TikTok video, or finish. [socai](https://github.com/socai-io/socai) executes the selected CLI command in your real Chrome. Each result goes back to Jev before the next decision.
+Jev chooses each next operation: search, open a particular post or profile, read comments, explicitly requested TikTok media download, or finish. [socai](https://github.com/socai-io/socai) executes the selected CLI command in your real Chrome. Each result goes back to Jev before the next decision.
 
 <p>
   <img src="https://raw.githubusercontent.com/socai-io/jev-social/main/docs/platforms/instagram.png" height="32" alt="Instagram">
@@ -55,7 +55,7 @@ This video also predates the per-operation Jev loop.
 | Platform | Jev can select |
 | --- | --- |
 | Instagram | Search, open a profile and its post cards, open a specific post/reel and read comments, inspect page state |
-| TikTok | Search, open an author, read a selected video and its comments, optionally download that video's media, inspect page state |
+| TikTok | Search, open an author, read a selected video and its comments, download that video's media only when the goal explicitly requests it, inspect page state |
 | LinkedIn | Search people/content/companies, read a selected profile/company/post, read experience or education, inspect page state |
 
 Only commands exposed by the installed socai CLI are offered. Targets come from captured results or explicit URLs in the user's request. Unsupported, malformed, and low-confidence decisions do not execute. Previously attempted operations are removed from the next choice set.

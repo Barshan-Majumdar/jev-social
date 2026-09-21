@@ -24,7 +24,7 @@ Recorded output example: https://github.com/socai-io/jev-social/blob/main/docs/e
 ## Supported operations
 
 - Instagram: search, inspect a profile, inspect an observed post or reel, read comments, inspect page state
-- TikTok: search, inspect an author, inspect an observed video and comments, download the selected video's media, inspect page state
+- TikTok: search, inspect an author, inspect an observed video and comments, download selected media only when explicitly requested, inspect page state
 - LinkedIn: search people, content, or companies; inspect an observed profile, company, post, experience, or education; inspect page state
 
 ## Interfaces
