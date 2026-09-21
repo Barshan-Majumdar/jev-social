@@ -119,6 +119,8 @@ npm start -- search "find handmade art on Instagram and read the comments" --lim
 
 `--limit` is the target result count and per-search/profile collection size (1–100). All captured records are retained, including intermediate profile cards. `--max-steps` bounds the decision loop (1–30, default 12); each selected operation or finish decision consumes one step. The HTTP search endpoints also accept `maxSteps`.
 
+For browser connection checks, platform login barriers, and safe status diagnostics, see [Troubleshooting](https://github.com/socai-io/jev-social/blob/main/docs/troubleshooting.md).
+
 Or call socai directly:
 
 ```bash

@@ -19,6 +19,7 @@
   },
   "files": [
     "bin",
+    "docs/troubleshooting.md",
     "public",
     "skills",
     "src",
