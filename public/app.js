@@ -3,6 +3,11 @@ import {
   getReportMarkdown,
   isReportDownloadable,
 } from "./report-download.js";
+import {
+  mediaPreviewCandidates,
+  nextPreviewCandidate,
+  selectSummaryCards,
+} from "./evidence-preview.js";
 import { bindPromptButtons } from "./prompts.js";
 
 const $ = (selector) => document.querySelector(selector);
@@ -238,7 +243,7 @@ function renderRun(run) {
 
   elements.cards.replaceChildren();
   if (items.length) {
-    items.forEach((item, index) => {
+    selectSummaryCards(items, 4).forEach((item, index) => {
       const card = renderCard(item, index);
       if (card) {
         card.classList.add("card-enter");
@@ -294,9 +299,8 @@ function showLiveEvidence(items) {
   elements.cards.classList.remove("hidden");
   elements.evidenceTable.classList.add("hidden");
   elements.reportSection.classList.add("hidden");
-  renderLiveCards(visible);
-  const count = elements.cards.childElementCount;
-  $("#result-summary").textContent = `${count} captured so far`;
+  renderLiveCards(selectSummaryCards(visible, 4));
+  $("#result-summary").textContent = `${visible.length} captured so far`;
   $("#media-summary").textContent = "live evidence stream";
 }
 
@@ -310,14 +314,16 @@ function renderLiveCards(items) {
     const fingerprint = JSON.stringify(item);
     wanted.add(key);
     const existing = current.get(key);
-    if (existing?.dataset.fingerprint === fingerprint) return;
-    const card = renderCard(item, index);
-    if (!card) return;
-    card.dataset.evidenceKey = key;
-    card.dataset.fingerprint = fingerprint;
-    card.classList.add(existing ? "card-update" : "card-enter");
-    if (existing) existing.replaceWith(card);
-    else elements.cards.append(card);
+    let card = existing;
+    if (existing?.dataset.fingerprint !== fingerprint) {
+      card = renderCard(item, index);
+      if (!card) return;
+      card.dataset.evidenceKey = key;
+      card.dataset.fingerprint = fingerprint;
+      card.classList.add(existing ? "card-update" : "card-enter");
+      if (existing) existing.replaceWith(card);
+    }
+    elements.cards.append(card);
   });
   for (const [key, card] of current) {
     if (!wanted.has(key)) card.remove();
@@ -331,23 +337,7 @@ function evidenceKey(item, index) {
 function renderCard(item, index) {
   const card = element("article", "card");
   const frame = element("div", "media-frame");
-  const videoUrl = videoSource(item);
-  const downloaded = Boolean(localVideoSource(item));
-  const posterUrl = posterSource(item);
-  if (videoUrl) {
-    const video = document.createElement("video");
-    video.src = videoUrl;
-    if (posterUrl) video.poster = posterUrl;
-    video.controls = true;
-    video.preload = "metadata";
-    video.playsInline = true;
-    video.addEventListener("error", () => renderImagePreview(frame, item), { once: true });
-    frame.append(video, element("span", "media-badge", downloaded ? "downloaded video" : "video preview"));
-  } else if (isDisplayUrl(posterUrl)) {
-    renderImagePreview(frame, item);
-  } else {
-    renderMediaFallback(frame, item);
-  }
+  renderMediaPreview(frame, item);
   card.append(frame);
 
   const body = element("div", "card-body");
@@ -375,22 +365,44 @@ function renderCard(item, index) {
   return card;
 }
 
-function renderImagePreview(frame, item) {
-  const sources = posterSources(item);
-  let cursor = 0;
+function renderMediaPreview(frame, item, { showBadge = true } = {}) {
+  const failed = new Set();
+  const poster = posterSource(item);
   const tryNext = () => {
-    const source = sources[cursor++];
-    if (!source) {
+    const candidate = nextPreviewCandidate(item, failed);
+    frame.classList.toggle("media-frame-fallback", candidate.kind === "fallback");
+    if (candidate.kind === "fallback") {
       renderMediaFallback(frame, item);
       return;
     }
+    if (candidate.kind.endsWith("video")) {
+      const video = document.createElement("video");
+      video.src = candidate.src;
+      if (poster) video.poster = poster;
+      video.controls = true;
+      video.preload = "metadata";
+      video.playsInline = true;
+      video.addEventListener("error", () => {
+        failed.add(candidate.src);
+        tryNext();
+      }, { once: true });
+      const children = [video];
+      if (showBadge) children.push(element("span", "media-badge", candidate.kind === "local-video" ? "downloaded video" : "remote video"));
+      frame.replaceChildren(...children);
+      return;
+    }
     const image = document.createElement("img");
-    image.src = source;
+    image.src = candidate.src;
     image.alt = "";
     image.loading = "lazy";
     image.referrerPolicy = "no-referrer";
-    image.addEventListener("error", tryNext, { once: true });
-    frame.replaceChildren(image);
+    image.addEventListener("error", () => {
+      failed.add(candidate.src);
+      tryNext();
+    }, { once: true });
+    const children = [image];
+    if (showBadge) children.push(element("span", "media-badge", "image preview"));
+    frame.replaceChildren(...children);
   };
   tryNext();
 }
@@ -407,13 +419,7 @@ function renderMediaFallback(frame, item) {
 }
 
 function posterSources(item) {
-  const media = Array.isArray(item?.media) ? item.media : [];
-  return [...new Set([
-    firstString(item?.video, ["poster_browser_url"]),
-    firstString(item?.video, ["poster_url"]),
-    firstString(item, ["cover_url", "cover", "thumbnail_url", "thumbnail", "image_url", "image"]),
-    ...media.flatMap((entry) => [entry?.poster_url, entry?.browser_url, entry?.url]),
-  ].filter(isDisplayUrl))];
+  return mediaPreviewCandidates(item).filter((candidate) => candidate.kind === "image").map((candidate) => candidate.src);
 }
 
 function revealReport(container) {
@@ -454,7 +460,7 @@ function renderTable(items) {
     ["Comments", (item) => firstValue(item, ["comments_count", "comment_count"]) || "—"],
     ["Shares", (item) => firstValue(item, ["shares", "share_count"]) || "—"],
     ["Duration", (item) => item.duration_seconds === undefined ? "—" : `${item.duration_seconds}s`],
-    ["Media", (item) => localVideoSource(item) ? "Downloaded" : videoSource(item) || posterSource(item) ? "Preview" : "—"],
+    ["Media", (item) => localVideoSource(item) ? "Downloaded video" : remoteVideoSource(item) ? "Remote video" : posterSource(item) ? "Image preview" : "Unavailable"],
   ];
   const headRow = document.createElement("tr");
   columns.forEach(([label]) => headRow.append(element("th", "", label)));
@@ -469,23 +475,7 @@ function renderTable(items) {
 
 function showDetail(item, title) {
   const media = element("div", "detail-media");
-  const videoUrl = videoSource(item);
-  const posterUrl = posterSource(item);
-  if (videoUrl) {
-    const video = document.createElement("video");
-    video.src = videoUrl;
-    if (posterUrl) video.poster = posterUrl;
-    video.controls = true;
-    video.autoplay = false;
-    video.playsInline = true;
-    media.append(video);
-  } else if (isDisplayUrl(posterUrl)) {
-    const image = document.createElement("img");
-    image.src = posterUrl;
-    image.alt = "";
-    image.referrerPolicy = "no-referrer";
-    media.append(image);
-  }
+  renderMediaPreview(media, item, { showBadge: false });
   const copy = element("div", "detail-copy");
   copy.append(element("h3", "", title));
   const description = firstString(item, ["description", "caption", "text", "title"]);
@@ -509,23 +499,12 @@ function showDetail(item, title) {
   elements.dialog.showModal();
 }
 
-function videoSource(item) {
-  return localVideoSource(item) || remoteVideoSource(item);
-}
-
 function localVideoSource(item) {
-  const candidate = firstString(item?.video, ["browser_url", "local_url"]) ||
-    firstString(item, ["video_browser_url", "browser_url"]);
-  return candidate.startsWith("/media/") ? candidate : "";
+  return mediaPreviewCandidates(item).find((candidate) => candidate.kind === "local-video")?.src || "";
 }
 
 function remoteVideoSource(item) {
-  const direct = firstString(item?.video, ["url", "play_url", "play_addr", "download_url"]) ||
-    firstString(item, ["video_url", "play_url", "play_addr"]);
-  if (isDisplayUrl(direct)) return direct;
-  const media = Array.isArray(item?.media) ? item.media.find((entry) => entry?.type === "video") : null;
-  const candidate = firstString(media, ["browser_url", "url"]);
-  return isDisplayUrl(candidate) ? candidate : "";
+  return mediaPreviewCandidates(item).find((candidate) => candidate.kind === "remote-video")?.src || "";
 }
 
 function posterSource(item) {
@@ -738,6 +717,5 @@ function compactNumber(value) {
 
 function isRecord(value) { return value && typeof value === "object" && !Array.isArray(value); }
 function isHttpUrl(value) { return typeof value === "string" && /^https?:\/\//i.test(value); }
-function isDisplayUrl(value) { return typeof value === "string" && (/^https?:\/\//i.test(value) || value.startsWith("/media/")); }
 function capitalize(value = "") { return value.charAt(0).toUpperCase() + value.slice(1); }
 function formatDuration(value) { return value < 1000 ? `${value} ms` : `${(value / 1000).toFixed(1)} s`; }
